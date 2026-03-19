@@ -1,11 +1,43 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>我的个人网站</title>
+    <title>百亿的成长日记</title>
+    <style>
+        body { font-family: sans-serif; background-color: #fcfcfc; text-align: center; color: #333; }
+        .header { padding: 40px 20px; }
+        .timeline { max-width: 600px; margin: 0 auto; padding: 20px; text-align: left; border-left: 4px solid #ffaa00; }
+        .event { margin-bottom: 40px; padding-left: 25px; position: relative; }
+        /* 时间轴上的小圆点 */
+        .event::before { content: ''; position: absolute; left: -14px; top: 5px; width: 20px; height: 20px; background: #ffaa00; border-radius: 50%; }
+        .date { font-weight: bold; color: #ffaa00; font-size: 1.2em; margin-bottom: 5px; }
+        .desc { line-height: 1.6; color: #555; }
+        /* 照片样式：圆角、加阴影 */
+        .photo { max-width: 100%; border-radius: 12px; margin-top: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    </style>
 </head>
 <body>
-    <h1>你好，世界！</h1>
-    <p>这是我的第一个 GitHub 网页。</p>
+
+    <div class="header">
+        <h1>🐶 百亿的成长日记</h1>
+        <p>记录这个小帅哥到 15 个月大的点点滴滴</p>
+    </div>
+
+    <div class="timeline">
+        
+        <div class="event">
+            <div class="date">一岁啦！</div>
+            <div class="desc">百亿正式满一岁了，是个活泼开朗的男孩子！</div>
+            <img class="photo" src="1-sui.jpg" alt="百亿一岁照片">
+        </div>
+
+        <div class="event">
+            <div class="date">15 个月大</div>
+            <div class="desc">现在的百亿越来越稳重可爱了。</div>
+            <img class="photo" src="15-months.jpg" alt="百亿15个月照片">
+        </div>
+
+        </div>
+
 </body>
 </html>
