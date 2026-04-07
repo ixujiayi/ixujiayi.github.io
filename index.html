@@ -18,14 +18,15 @@
         nav a { font-weight: bold; font-size: 16px; transition: color 0.3s; color: #bbb; }
         nav a:hover, nav a.active { color: #ff9800; }
 
-        /* 地图容器 */
+        /* 地图容器样式 */
         .map-wrapper { text-align: center; padding: 20px; }
         .map-title { margin-bottom: 10px; font-size: 32px; letter-spacing: 4px; color: #fff; }
         .map-subtitle { color: #888; margin-bottom: 20px; font-size: 14px; }
+        
         .map-container { position: relative; width: 100%; max-width: 1200px; margin: 0 auto; }
         #china-map { width: 100%; height: 750px; }
         
-        /* 画廊弹窗 */
+        /* 画廊弹窗样式 */
         #gallery-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 15, 15, 0.95); z-index: 2000; overflow-y: auto; padding-top: 50px; }
         .close-btn { position: fixed; top: 30px; right: 40px; font-size: 40px; color: #fff; cursor: pointer; transition: color 0.3s; z-index: 2001; }
         .close-btn:hover { color: #ff9800; }
@@ -50,12 +51,14 @@
 
     <main class="map-wrapper">
         <h1 class="map-title">光影足迹</h1>
-        <p class="map-subtitle" id="map-tip">点击省份可放大查看市级区划，点击橙色光点查看摄影作品</p>
+        <p class="map-subtitle" id="map-tip">点击省份可放大查看市区，点击橙色光点查看摄影作品，随意拖拽缩放</p>
+        
         <div class="map-container">
             <div id="china-map"></div>
         </div>
     </main>
 
+    <!-- 画廊弹窗 -->
     <div id="gallery-modal">
         <span class="close-btn" onclick="closeGallery()">&times;</span>
         <div class="gallery-content">
@@ -65,30 +68,39 @@
     </div>
 
     <script>
-        // --- 摄影作品数据 ---
+        // --- 摄影作品数据配置区 ---
         const photoData = [
             {
                 name: "北京市区", 
                 value: [116.405285, 39.904989],
-                photos: [{ url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫的角楼" }]
+                photos: [
+                    { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫的角楼" }
+                ]
             },
             {
                 name: "成都市", 
                 value: [104.065735, 30.659462], 
-                photos: [{ url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "成都街头的人间烟火" }]
+                photos: [
+                    { url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "成都街头的人间烟火" }
+                ]
             },
             {
                 name: "阿坝藏族羌族自治州", 
                 value: [102.221374, 31.899792], 
-                photos: [{ url: "https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?q=80&w=600", desc: "九寨沟的纯净水色" }]
+                photos: [
+                    { url: "https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?q=80&w=600", desc: "九寨沟的纯净水色" }
+                ]
             },
             {
                 name: "拉萨市", 
                 value: [91.1145, 29.64415], 
-                photos: [{ url: "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600", desc: "布达拉宫" }]
+                photos: [
+                    { url: "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600", desc: "布达拉宫" }
+                ]
             }
         ];
 
+        // 各省份拼音字典
         const provincePinyin = {
             '北京': 'beijing', '天津': 'tianjin', '上海': 'shanghai', '重庆': 'chongqing',
             '河北': 'hebei', '山西': 'shanxi', '辽宁': 'liaoning', '吉林': 'jilin',
@@ -101,35 +113,13 @@
             '香港': 'xianggang', '澳门': 'aomen'
         };
 
+        // --- 地图核心逻辑 ---
         const chartDom = document.getElementById('china-map');
         const myChart = echarts.init(chartDom);
-        
-        let currentProvince = null; // 记录当前所在的省
-        let currentCityNames = [];  // 记录当前省份包含的所有“市”的名字
+        let currentProvince = null; 
 
-        // 生成地图配置
+        // 生成地图的配置项
         function getMapOption(mapName, center = null, zoom = 1.2) {
-            
-            // 核心：动态为被放大的市级区划添加名称标签和高亮样式
-            let regionsConfig = [];
-            if (currentProvince && currentCityNames.length > 0) {
-                currentCityNames.forEach(city => {
-                    regionsConfig.push({
-                        name: city,
-                        label: { 
-                            show: true,           // 显示市的名字
-                            color: '#ccc',        // 字体颜色
-                            fontSize: 11          // 字体大小
-                        },
-                        itemStyle: { 
-                            areaColor: '#3d4d5d', // 让本省的市级版块稍微亮一点，区别于周边省份
-                            borderColor: '#888',  // 清晰的市级边界线
-                            borderWidth: 1
-                        }
-                    });
-                });
-            }
-
             return {
                 tooltip: {
                     trigger: 'item',
@@ -137,20 +127,30 @@
                         if (params.seriesType === 'effectScatter') {
                             return params.name + ' (' + params.data.photos.length + ' 张照片)<br>点击查看作品';
                         }
-                        return params.name + (!currentProvince && provincePinyin[params.name] ? '<br>点击查看该省市级区划' : '');
+                        return params.name + (!currentProvince && provincePinyin[params.name] ? '<br>点击查看各市' : '');
                     }
                 },
                 geo: {
                     map: mapName,
-                    roam: true,
+                    roam: true, 
                     zoom: zoom,
                     center: center,
-                    label: { show: false }, // 默认不显示全图的省份名字，保持干净
-                    itemStyle: {
-                        normal: { areaColor: '#2b3643', borderColor: '#111' }, // 周边省份颜色深沉
-                        emphasis: { areaColor: '#4b5c6e' } 
+                    // 【关键修改点】：开启地图的文字标签显示，省份和市级的名字都会自动显示
+                    label: {
+                        normal: {
+                            show: true,
+                            color: 'rgba(255, 255, 255, 0.4)', // 半透明白色文字，避免太抢眼
+                            fontSize: 10
+                        },
+                        emphasis: {
+                            show: true,
+                            color: '#ffffff' // 鼠标悬浮时文字变亮
+                        }
                     },
-                    regions: regionsConfig // 将上面写好的市级高亮配置应用进去
+                    itemStyle: {
+                        normal: { areaColor: '#323c48', borderColor: '#111' },
+                        emphasis: { areaColor: '#4b5c6e' } 
+                    }
                 },
                 series: [
                     {
@@ -169,31 +169,28 @@
             };
         }
 
-        // 初始化加载全国地图
+        // 初始加载全国地图
         myChart.setOption(getMapOption('china'));
 
-        // 监听点击事件
+        // 1. 监听点击地图板块或光点
         myChart.on('click', function (params) {
-            // 点击发光点 -> 打开画廊
             if (params.componentType === 'series' && params.seriesType === 'effectScatter') {
                 openGallery(params.data);
                 return;
             } 
             
-            // 点击地图板块
             if (params.componentType === 'geo') {
                 let clickedName = params.name;
 
                 if (!currentProvince) {
-                    // 全国视图下，点击省份 -> 下钻
                     if (provincePinyin[clickedName]) {
                         drillDownToProvince(clickedName);
                     }
                 } else {
-                    // 下钻视图下，判断点击的是否为本省内的市
-                    let isCityInside = currentCityNames.includes(clickedName);
+                    let provMapData = echarts.getMap(currentProvince);
+                    let provGeo = provMapData.geoJSON || provMapData.geoJson;
+                    let isCityInside = provGeo.features.some(f => f.properties.name === clickedName);
                     
-                    // 如果点到了外省（比如在四川放大后点击了旁边的云南），直接退回全国
                     if (!isCityInside) {
                         returnToChina();
                     }
@@ -201,14 +198,14 @@
             }
         });
 
-        // 监听点击空白处（海洋等非地图区域）退回全国
+        // 2. 监听点击地图背景空白处
         myChart.getZr().on('click', function (event) {
             if (!event.target && currentProvince) {
                 returnToChina();
             }
         });
 
-        // 下钻逻辑：加载并合并地图数据
+        // --- 核心：下钻与合并地图数据 ---
         function drillDownToProvince(provinceName) {
             let pinyin = provincePinyin[provinceName];
             let scriptId = 'map-script-' + pinyin;
@@ -231,9 +228,6 @@
             let chinaGeo = chinaMap.geoJSON || chinaMap.geoJson;
             let provGeo = provMap.geoJSON || provMap.geoJson;
             
-            // 提取该省包含的所有市级名称，用于后续判断和加标签
-            currentCityNames = provGeo.features.map(f => f.properties.name);
-            
             let mergedFeatures = [];
             let centerPoint = null;
 
@@ -245,7 +239,6 @@
                 }
             });
 
-            // 拼入市级区块
             mergedFeatures = mergedFeatures.concat(provGeo.features);
 
             echarts.registerMap('merged_china', {
@@ -253,24 +246,24 @@
                 features: mergedFeatures
             });
 
-            currentProvince = provinceName;
-            document.getElementById('map-tip').innerText = `当前位置：${provinceName} （点击周边省份或深色空白处可退回全国，滚轮可缩放）`;
+            currentProvince = provinceName; 
+            document.getElementById('map-tip').innerText = `当前位置：${provinceName} （点击周边省份或空白处可返回全国，滚轮可缩放）`;
 
             if (!centerPoint && provGeo.features.length > 0) {
                 centerPoint = provGeo.features[0].properties.cp;
             }
 
-            // zoom 设置为 4.5 左右，适合显示整个省份
-            myChart.setOption(getMapOption('merged_china', centerPoint, 4.5));
+            myChart.setOption(getMapOption('merged_china', centerPoint, 5));
         }
 
+        // 返回全国视图
         function returnToChina() {
             currentProvince = null;
-            currentCityNames = [];
-            document.getElementById('map-tip').innerText = '点击省份可放大查看市级区划，点击橙色光点查看摄影作品';
+            document.getElementById('map-tip').innerText = '点击省份可放大查看市区，点击橙色光点查看摄影作品，随意拖拽缩放';
             myChart.setOption(getMapOption('china', null, 1.2));
         }
 
+        // 窗口大小自适应
         window.addEventListener('resize', () => myChart.resize());
 
         // --- 画廊弹窗逻辑 ---
