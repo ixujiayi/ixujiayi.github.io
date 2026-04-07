@@ -2,42 +2,99 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>百亿的成长日记</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的个人空间 | 摄影与生活</title>
     <style>
-        body { font-family: sans-serif; background-color: #fcfcfc; text-align: center; color: #333; }
-        .header { padding: 40px 20px; }
-        .timeline { max-width: 600px; margin: 0 auto; padding: 20px; text-align: left; border-left: 4px solid #ffaa00; }
-        .event { margin-bottom: 40px; padding-left: 25px; position: relative; }
-        /* 时间轴上的小圆点 */
-        .event::before { content: ''; position: absolute; left: -14px; top: 5px; width: 20px; height: 20px; background: #ffaa00; border-radius: 50%; }
-        .date { font-weight: bold; color: #ffaa00; font-size: 1.2em; margin-bottom: 5px; }
-        .desc { line-height: 1.6; color: #555; }
-        /* 照片样式：圆角、加阴影 */
-        .photo { max-width: 100%; border-radius: 12px; margin-top: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        /* 全局样式 */
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #f9f9f9; color: #333; }
+        a { text-decoration: none; color: inherit; }
+        
+        /* 导航栏样式 */
+        header { background-color: #fff; padding: 20px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 1000; }
+        nav { display: flex; justify-content: center; gap: 40px; }
+        nav a { font-weight: bold; font-size: 16px; transition: color 0.3s; }
+        nav a:hover, nav a.active { color: #007bff; }
+
+        /* 摄影画廊（照片墙）样式 */
+        .gallery-container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+        .gallery-header { text-align: center; margin-bottom: 40px; }
+        .gallery-header h1 { font-size: 32px; letter-spacing: 2px; }
+        .gallery-header p { color: #666; }
+
+        /* CSS 网格布局 */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-auto-rows: 250px;
+            gap: 20px;
+        }
+        .photo-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .photo-item:hover { transform: translateY(-5px); }
+        .photo-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+        .photo-item:hover img { transform: scale(1.05); }
+        
+        /* 照片悬浮文字 */
+        .photo-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            color: white; padding: 20px;
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        .photo-item:hover .photo-overlay { opacity: 1; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>🐶 百亿的成长日记</h1>
-        <p>记录</p>
-    </div>
+    <!-- 顶部导航栏 -->
+    <header>
+        <nav>
+            <a href="index.html" class="active">摄影作品</a>
+            <a href="essays.html">个人随笔</a>
+            <a href="analog-circuits.html">模电心得</a>
+            <a href="billion-records.html">百亿记录</a>
+            <a href="future-plans.html">未来计划</a>
+        </nav>
+    </header>
 
-    <div class="timeline">
-        
-        <div class="event">
-            <div class="date">一岁啦！</div>
-            <div class="desc">百亿正式满一岁啦！</div>
-            <img class="photo" src="1-sui.jpg" alt="百亿一岁照片">
+    <!-- 首页主视觉：摄影画廊 -->
+    <main class="gallery-container">
+        <div class="gallery-header">
+            <h1>光影记录</h1>
+            <p>用镜头捕捉生活的美好瞬间</p>
         </div>
 
-        <div class="event">
-            <div class="date">15 个月大</div>
-            <div class="desc">现在的百亿越来越可爱了。</div>
-            <img class="photo" src="15-months.jpg" alt="百亿15个月照片">
+        <!-- 照片墙 -->
+        <div class="photo-grid">
+            <!-- 照片1 -->
+            <div class="photo-item">
+                <!-- 替换为你自己的图片链接或仓库相对路径 -->
+                <img src="https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81?q=80&w=600" alt="风光摄影">
+                <div class="photo-overlay"><h3>日落大道</h3><p>2026 拍摄于某地</p></div>
+            </div>
+            <!-- 照片2 -->
+            <div class="photo-item">
+                <img src="https://images.unsplash.com/photo-1516802273409-68526ee1bdd6?q=80&w=600" alt="人像摄影">
+                <div class="photo-overlay"><h3>胶片记忆</h3><p>35mm 胶片</p></div>
+            </div>
+            <!-- 照片3 -->
+            <div class="photo-item">
+                <img src="https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=600" alt="微距摄影">
+                <div class="photo-overlay"><h3>微观世界</h3><p>自然与植物</p></div>
+            </div>
+            <!-- 照片4 -->
+            <div class="photo-item">
+                <img src="https://images.unsplash.com/photo-1502082553048-f009c37129b9?q=80&w=600" alt="街头摄影">
+                <div class="photo-overlay"><h3>街头漫步</h3><p>城市剪影</p></div>
+            </div>
+            <!-- 可以继续复制上述 .photo-item 块来添加更多照片 -->
         </div>
-
-        </div>
+    </main>
 
 </body>
 </html>
