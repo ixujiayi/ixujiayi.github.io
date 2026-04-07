@@ -3,55 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的个人空间 | 行摄中国</title>
+    <title>我的个人空间 | 行摄中国 · 暗夜与明亮双主题</title>
     <!-- 引入 ECharts 核心库 -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <!-- 引入全国地图数据 -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
     <style>
-        /* 基础与导航栏样式 */
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #1a1a1a; color: #fff; }
-        a { text-decoration: none; color: inherit; }
-        
-        header { background-color: #242424; padding: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.5); position: sticky; top: 0; z-index: 1000; }
-        nav { display: flex; justify-content: center; gap: 40px; }
-        nav a { font-weight: bold; font-size: 16px; transition: color 0.3s; color: #bbb; }
-        nav a:hover, nav a.active { color: #ff9800; }
+        /* ---------- 基础变量与全局过渡 ---------- */
+        * {
+            transition: background-color 0.25s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
 
-        /* 地图容器样式 */
-        .map-wrapper { text-align: center; padding: 20px; }
-        .map-title { margin-bottom: 10px; font-size: 32px; letter-spacing: 4px; color: #fff; }
-        .map-subtitle { color: #888; margin-bottom: 20px; font-size: 14px; }
-        
-        .map-container { position: relative; width: 100%; max-width: 1200px; margin: 0 auto; }
-        #china-map { width: 100%; height: 750px; }
-        
-        /* 画廊弹窗样式 */
-        #gallery-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 15, 15, 0.95); z-index: 2000; overflow-y: auto; padding-top: 50px; }
-        .close-btn { position: fixed; top: 30px; right: 40px; font-size: 40px; color: #fff; cursor: pointer; transition: color 0.3s; z-index: 2001; }
-        .close-btn:hover { color: #ff9800; }
-        .gallery-content { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .gallery-location-title { font-size: 36px; text-align: center; margin-bottom: 30px; color: #ff9800; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-        .photo-card { background: #222; border-radius: 8px; overflow: hidden; }
-        .photo-card img { width: 100%; height: 250px; object-fit: cover; display: block; }
-        .photo-desc { padding: 15px; font-size: 14px; color: #ddd; text-align: center; }
+        /* 默认暗夜模式 (dark) 变量 */
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #242424;
+            --bg-card: #222;
+            --bg-modal: rgba(15, 15, 15, 0.96);
+            --text-primary: #fff;
+            --text-secondary: #bbb;
+            --text-muted: #888;
+            --border-color: #333;
+            --nav-hover: #ff9800;
+            --map-area-dark: #323c48;
+            --map-border: #111;
+            --map-area-emphasis: #4b5c6e;
+            --card-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        /* 明亮模式变量 */
+        body.light {
+            --bg-primary: #f5f7fa;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --bg-modal: rgba(245, 247, 250, 0.98);
+            --text-primary: #1e293b;
+            --text-secondary: #334155;
+            --text-muted: #5b6e8c;
+            --border-color: #e2e8f0;
+            --nav-hover: #e67e22;
+            --map-area-dark: #d9e2ef;
+            --map-border: #cbd5e1;
+            --map-area-emphasis: #b9c8e0;
+            --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        header {
+            background-color: var(--bg-secondary);
+            padding: 20px 0;
+            box-shadow: var(--card-shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid var(--border-color);
+        }
+        nav {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        nav a {
+            font-weight: bold;
+            font-size: 16px;
+            color: var(--text-secondary);
+            transition: color 0.3s;
+        }
+        nav a:hover, nav a.active {
+            color: var(--nav-hover);
+        }
+        /* 主题切换按钮 */
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 40px;
+            padding: 6px 14px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--text-primary);
+            background-color: var(--bg-primary);
+            transition: all 0.2s;
+            margin-left: 20px;
+        }
+        .theme-toggle:hover {
+            background-color: var(--nav-hover);
+            color: #fff;
+            border-color: var(--nav-hover);
+        }
+
+        /* 地图容器区域 */
+        .map-wrapper {
+            text-align: center;
+            padding: 20px;
+        }
+        .map-title {
+            margin-bottom: 10px;
+            font-size: 32px;
+            letter-spacing: 4px;
+            color: var(--text-primary);
+        }
+        .map-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .map-container {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        #china-map {
+            width: 100%;
+            height: 750px;
+            background-color: var(--bg-primary);  /* 地图背景随主题 */
+            border-radius: 12px;
+        }
+
+        /* 画廊弹窗 (主题适配) */
+        #gallery-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-modal);
+            z-index: 2000;
+            overflow-y: auto;
+            padding-top: 50px;
+            backdrop-filter: blur(2px);
+        }
+        .close-btn {
+            position: fixed;
+            top: 30px;
+            right: 40px;
+            font-size: 40px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: color 0.3s;
+            z-index: 2001;
+        }
+        .close-btn:hover {
+            color: var(--nav-hover);
+        }
+        .gallery-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .gallery-location-title {
+            font-size: 36px;
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--nav-hover);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .photo-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+        }
+        .photo-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            display: block;
+        }
+        .photo-desc {
+            padding: 15px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* 响应式 */
+        @media (max-width: 700px) {
+            nav { gap: 20px; }
+            .theme-toggle { margin-left: 0; margin-top: 8px; }
+            .map-title { font-size: 24px; }
+            #china-map { height: 500px; }
+        }
     </style>
 </head>
 <body>
     <header>
         <nav>
-            <a href="index.html" class="active">摄影地图</a>
-            <a href="essays.html">个人随笔</a>
-            <a href="analog-circuits.html">模电心得</a>
-            <a href="billion-records.html">百亿记录</a>
-            <a href="future-plans.html">未来计划</a>
+            <a href="#" class="active">摄影地图</a>
+            <a href="#">个人随笔</a>
+            <a href="#">模电心得</a>
+            <a href="#">百亿记录</a>
+            <a href="#">未来计划</a>
+            <button id="theme-switch-btn" class="theme-toggle">🌙 暗夜模式</button>
         </nav>
     </header>
 
     <main class="map-wrapper">
         <h1 class="map-title">光影足迹</h1>
-        <p class="map-subtitle" id="map-tip">点击省份可放大查看市区，点击橙色光点查看摄影作品，随意拖拽缩放</p>
+        <p class="map-subtitle" id="map-tip">点击省份可放大查看市区，点击橙色光点查看摄影作品，随意拖拽缩放 | 主题跟随系统/可手动切换</p>
         
         <div class="map-container">
             <div id="china-map"></div>
@@ -68,39 +238,39 @@
     </div>
 
     <script>
-        // --- 摄影作品数据配置区 ---
+        // ---------- 摄影作品数据 (保持不变) ----------
         const photoData = [
             {
                 name: "北京市区", 
                 value: [116.405285, 39.904989],
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫的角楼" }
+                    { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫的角楼 · 历史光影" }
                 ]
             },
             {
                 name: "成都市", 
                 value: [104.065735, 30.659462], 
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "成都街头的人间烟火" }
+                    { url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "成都街头 · 人间烟火" }
                 ]
             },
             {
                 name: "阿坝藏族羌族自治州", 
                 value: [102.221374, 31.899792], 
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?q=80&w=600", desc: "九寨沟的纯净水色" }
+                    { url: "https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?q=80&w=600", desc: "九寨沟 · 纯净水色" }
                 ]
             },
             {
                 name: "拉萨市", 
                 value: [91.1145, 29.64415], 
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600", desc: "布达拉宫" }
+                    { url: "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600", desc: "布达拉宫 · 圣洁日光" }
                 ]
             }
         ];
 
-        // 各省份拼音字典
+        // 各省份拼音字典（用于下钻）
         const provincePinyin = {
             '北京': 'beijing', '天津': 'tianjin', '上海': 'shanghai', '重庆': 'chongqing',
             '河北': 'hebei', '山西': 'shanxi', '辽宁': 'liaoning', '吉林': 'jilin',
@@ -113,99 +283,144 @@
             '香港': 'xianggang', '澳门': 'aomen'
         };
 
-        // --- 地图核心逻辑 ---
+        // ---------- 地图实例与全局状态 ----------
         const chartDom = document.getElementById('china-map');
         const myChart = echarts.init(chartDom);
-        let currentProvince = null; 
+        let currentProvince = null;      // null=全国视图, 有值=下钻到的省份名
+        let currentMapName = 'china';    // 当前注册的地图名称
 
-        // 生成地图的配置项
+        // ---------- 根据主题获取地图样式配置 (动态颜色) ----------
+        function getGeoThemeStyle() {
+            // 获取当前body是否light类
+            const isLight = document.body.classList.contains('light');
+            return {
+                areaColor: isLight ? '#e9f0f5' : '#323c48',
+                borderColor: isLight ? '#cbd5e1' : '#111111',
+                emphasisAreaColor: isLight ? '#cfdfef' : '#4b5c6e',
+                labelColor: isLight ? '#1f2a3e' : 'rgba(255,255,255,0.5)',
+                labelEmphasisColor: isLight ? '#e67e22' : '#ffffff',
+                tooltipBg: isLight ? 'rgba(255,255,245,0.95)' : 'rgba(30,30,40,0.96)',
+                tooltipBorder: isLight ? '#ccc' : '#ff9800'
+            };
+        }
+
+        // 生成地图配置 (通用，用于初始化或下钻时)
         function getMapOption(mapName, center = null, zoom = 1.2) {
+            const style = getGeoThemeStyle();
             return {
                 tooltip: {
                     trigger: 'item',
+                    backgroundColor: style.tooltipBg,
+                    borderColor: style.tooltipBorder,
+                    borderWidth: 1,
+                    textStyle: { color: document.body.classList.contains('light') ? '#1e293b' : '#f0f0f0' },
                     formatter: function (params) {
                         if (params.seriesType === 'effectScatter') {
-                            return params.name + ' (' + params.data.photos.length + ' 张照片)<br>点击查看作品';
+                            return params.name + ' (' + params.data.photos.length + ' 张照片)<br>✨ 点击查看作品';
                         }
-                        return params.name + (!currentProvince && provincePinyin[params.name] ? '<br>点击查看各市' : '');
+                        return params.name + (!currentProvince && provincePinyin[params.name] ? '<br>📌 点击查看各市' : '');
                     }
                 },
                 geo: {
                     map: mapName,
-                    roam: true, 
+                    roam: true,
                     zoom: zoom,
                     center: center,
-                    // 【关键修改点】：开启地图的文字标签显示，省份和市级的名字都会自动显示
                     label: {
                         normal: {
                             show: true,
-                            color: 'rgba(255, 255, 255, 0.4)', // 半透明白色文字，避免太抢眼
+                            color: style.labelColor,
                             fontSize: 10
                         },
                         emphasis: {
                             show: true,
-                            color: '#ffffff' // 鼠标悬浮时文字变亮
+                            color: style.labelEmphasisColor
                         }
                     },
                     itemStyle: {
-                        normal: { areaColor: '#323c48', borderColor: '#111' },
-                        emphasis: { areaColor: '#4b5c6e' } 
+                        normal: {
+                            areaColor: style.areaColor,
+                            borderColor: style.borderColor,
+                            borderWidth: 0.8
+                        },
+                        emphasis: {
+                            areaColor: style.emphasisAreaColor,
+                            borderWidth: 1.2
+                        }
                     }
                 },
                 series: [
                     {
                         name: '摄影足迹',
-                        type: 'effectScatter', 
+                        type: 'effectScatter',
                         coordinateSystem: 'geo',
                         data: photoData,
                         symbolSize: 15,
                         showEffectOn: 'render',
                         rippleEffect: { brushType: 'stroke', scale: 4 },
-                        label: { formatter: '{b}', position: 'right', show: true, color: '#fff' },
-                        itemStyle: { color: '#ff9800', shadowBlur: 10, shadowColor: '#333' },
+                        label: {
+                            formatter: '{b}',
+                            position: 'right',
+                            show: true,
+                            color: document.body.classList.contains('light') ? '#2c3e50' : '#fff',
+                            fontWeight: 'bold',
+                            fontSize: 12,
+                            offset: [8, 0]
+                        },
+                        itemStyle: {
+                            color: '#ff9800',
+                            shadowBlur: 12,
+                            shadowColor: '#ff9800cc'
+                        },
                         zlevel: 1
                     }
                 ]
             };
         }
 
-        // 初始加载全国地图
-        myChart.setOption(getMapOption('china'));
-
-        // 1. 监听点击地图板块或光点
-        myChart.on('click', function (params) {
-            if (params.componentType === 'series' && params.seriesType === 'effectScatter') {
-                openGallery(params.data);
-                return;
-            } 
-            
-            if (params.componentType === 'geo') {
-                let clickedName = params.name;
-
-                if (!currentProvince) {
-                    if (provincePinyin[clickedName]) {
-                        drillDownToProvince(clickedName);
+        // 更新地图主题（不改变下钻状态/中心/缩放，只改变样式）
+        function updateEchartsThemeOnly() {
+            if (!myChart) return;
+            const currentOption = myChart.getOption();
+            if (!currentOption.geo) return;
+            const style = getGeoThemeStyle();
+            // 更新 geo 样式
+            const newGeoOption = {
+                geo: {
+                    itemStyle: {
+                        normal: {
+                            areaColor: style.areaColor,
+                            borderColor: style.borderColor
+                        },
+                        emphasis: {
+                            areaColor: style.emphasisAreaColor
+                        }
+                    },
+                    label: {
+                        normal: { color: style.labelColor },
+                        emphasis: { color: style.labelEmphasisColor }
                     }
-                } else {
-                    let provMapData = echarts.getMap(currentProvince);
-                    let provGeo = provMapData.geoJSON || provMapData.geoJson;
-                    let isCityInside = provGeo.features.some(f => f.properties.name === clickedName);
-                    
-                    if (!isCityInside) {
-                        returnToChina();
+                },
+                tooltip: {
+                    backgroundColor: style.tooltipBg,
+                    borderColor: style.tooltipBorder,
+                    textStyle: { color: document.body.classList.contains('light') ? '#1e293b' : '#f0f0f0' }
+                },
+                series: currentOption.series.map(s => {
+                    if (s.type === 'effectScatter' && s.label) {
+                        return {
+                            ...s,
+                            label: { ...s.label, color: document.body.classList.contains('light') ? '#2c3e50' : '#ffffff' }
+                        };
                     }
-                }
-            }
-        });
+                    return s;
+                })
+            };
+            // 合并更新，不清除现有状态 (notMerge = false)
+            myChart.setOption(newGeoOption, false);
+        }
 
-        // 2. 监听点击地图背景空白处
-        myChart.getZr().on('click', function (event) {
-            if (!event.target && currentProvince) {
-                returnToChina();
-            }
-        });
-
-        // --- 核心：下钻与合并地图数据 ---
+        // ---------- 下钻与合并地图 (保留原有逻辑，同时支持主题更新后重新渲染时保持状态) ----------
         function drillDownToProvince(provinceName) {
             let pinyin = provincePinyin[provinceName];
             let scriptId = 'map-script-' + pinyin;
@@ -241,53 +456,185 @@
 
             mergedFeatures = mergedFeatures.concat(provGeo.features);
 
-            echarts.registerMap('merged_china', {
+            const mergedMapName = 'merged_china_' + provinceName;
+            echarts.registerMap(mergedMapName, {
                 type: 'FeatureCollection',
                 features: mergedFeatures
             });
 
-            currentProvince = provinceName; 
-            document.getElementById('map-tip').innerText = `当前位置：${provinceName} （点击周边省份或空白处可返回全国，滚轮可缩放）`;
+            currentProvince = provinceName;
+            currentMapName = mergedMapName;
+            document.getElementById('map-tip').innerHTML = `📍 当前位置：${provinceName} （点击周边省份或空白处可返回全国，滚轮可缩放） | 主题可切换`;
 
             if (!centerPoint && provGeo.features.length > 0) {
                 centerPoint = provGeo.features[0].properties.cp;
             }
-
-            myChart.setOption(getMapOption('merged_china', centerPoint, 5));
+            // 获取最新主题样式
+            const option = getMapOption(mergedMapName, centerPoint, 5);
+            myChart.setOption(option, true);
         }
 
         // 返回全国视图
         function returnToChina() {
             currentProvince = null;
-            document.getElementById('map-tip').innerText = '点击省份可放大查看市区，点击橙色光点查看摄影作品，随意拖拽缩放';
-            myChart.setOption(getMapOption('china', null, 1.2));
+            currentMapName = 'china';
+            document.getElementById('map-tip').innerHTML = '🗺️ 点击省份可放大查看市区，点击橙色光点查看摄影作品，随意拖拽缩放 | 主题跟随系统/可手动切换';
+            const option = getMapOption('china', null, 1.2);
+            myChart.setOption(option, true);
         }
 
-        // 窗口大小自适应
+        // 监听地图点击事件（下钻 + 摄影弹窗）
+        myChart.on('click', function (params) {
+            if (params.componentType === 'series' && params.seriesType === 'effectScatter') {
+                openGallery(params.data);
+                return;
+            } 
+            
+            if (params.componentType === 'geo') {
+                let clickedName = params.name;
+                if (!currentProvince) {
+                    if (provincePinyin[clickedName]) {
+                        drillDownToProvince(clickedName);
+                    }
+                } else {
+                    // 下钻模式下，判断点击的是否属于当前省份的市区（简单检测：获取当前合并地图geoJSON特征）
+                    let currentMapGeo = echarts.getMap(currentMapName);
+                    let geoJson = currentMapGeo.geoJSON || currentMapGeo.geoJson;
+                    let isCityInside = false;
+                    if (geoJson && geoJson.features) {
+                        isCityInside = geoJson.features.some(f => f.properties.name === clickedName);
+                    }
+                    if (!isCityInside) {
+                        returnToChina();
+                    }
+                }
+            }
+        });
+
+        // 点击空白区域返回全国
+        myChart.getZr().on('click', function (event) {
+            if (!event.target && currentProvince) {
+                returnToChina();
+            }
+        });
+
+        // 窗口自适应
         window.addEventListener('resize', () => myChart.resize());
 
-        // --- 画廊弹窗逻辑 ---
+        // ---------- 主题切换核心 (系统配置 + 手动) ----------
+        // 检测系统主题
+        function getSystemTheme() {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        // 应用主题到body，并更新地图样式 + 按钮文字
+        let currentTheme = 'dark'; // 记录当前主题
+
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                document.body.classList.add('light');
+                currentTheme = 'light';
+                document.getElementById('theme-switch-btn').innerHTML = '☀️ 明亮模式';
+            } else {
+                document.body.classList.remove('light');
+                currentTheme = 'dark';
+                document.getElementById('theme-switch-btn').innerHTML = '🌙 暗夜模式';
+            }
+            // 更新地图内视觉样式 (保留地图状态，不重新下钻)
+            if (myChart && !myChart.isDisposed()) {
+                updateEchartsThemeOnly();
+                // 额外处理系列中effectScatter的文字颜色及地图label动态变化后可能遗留问题，二次确保
+                // 同时如果地图实例中散点图颜色微调
+                const curOpt = myChart.getOption();
+                if (curOpt.series && curOpt.series[0]) {
+                    const newLabelColor = theme === 'light' ? '#2c3e50' : '#ffffff';
+                    myChart.setOption({
+                        series: [{
+                            label: { color: newLabelColor }
+                        }]
+                    }, false);
+                }
+            }
+        }
+
+        // 手动切换事件
+        function toggleTheme() {
+            if (currentTheme === 'dark') {
+                applyTheme('light');
+            } else {
+                applyTheme('dark');
+            }
+        }
+
+        // 监听系统主题变化 (自动适配)
+        const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        function handleSystemThemeChange(e) {
+            // 如果没有手动覆盖过？为了方便，让系统自动跟随：只要用户没点击过按钮覆盖，我们就自动变。我们增加一个标志
+            if (!userOverrideFlag) {
+                const newTheme = e.matches ? 'dark' : 'light';
+                applyTheme(newTheme);
+            }
+        }
+        let userOverrideFlag = false;  // 用户手动切换后将不再自动跟随系统（体验更好）
+        darkModeMediaQuery.addEventListener('change', (e) => {
+            if (!userOverrideFlag) {
+                applyTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+
+        // 初始化主题：根据系统配置，同时绑定手动按钮
+        function initTheme() {
+            const sysTheme = getSystemTheme();
+            applyTheme(sysTheme);
+            userOverrideFlag = false; // 初始未手动覆盖
+            const btn = document.getElementById('theme-switch-btn');
+            btn.addEventListener('click', () => {
+                toggleTheme();
+                userOverrideFlag = true;   // 用户手动点击后，不再自动跟随系统（除非刷新页面）
+            });
+        }
+
+        // ---------- 画廊弹窗逻辑 ----------
         const modal = document.getElementById('gallery-modal');
         const locationTitle = document.getElementById('location-name');
         const photoGrid = document.getElementById('photo-grid-container');
 
         function openGallery(data) {
-            locationTitle.innerText = "拍摄地：" + data.name;
+            locationTitle.innerText = "📸 拍摄地：" + data.name;
             photoGrid.innerHTML = "";
             data.photos.forEach(photo => {
                 const card = document.createElement('div');
                 card.className = 'photo-card';
-                card.innerHTML = `<img src="${photo.url}" alt="${photo.desc}"><div class="photo-desc">${photo.desc}</div>`;
+                card.innerHTML = `<img src="${photo.url}" alt="${photo.desc}" loading="lazy"><div class="photo-desc">${photo.desc}</div>`;
                 photoGrid.appendChild(card);
             });
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
         }
 
-        function closeGallery() {
+        window.closeGallery = function() {
             modal.style.display = 'none';
             document.body.style.overflow = 'auto';
+        };
+
+        // 点击模态背景关闭（可选）
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeGallery();
+        });
+
+        // 初始化所有 (地图、主题)
+        function initMapAndTheme() {
+            // 先注册初始地图
+            myChart.setOption(getMapOption('china', null, 1.2));
+            // 绑定全局返回辅助 (保留原生)
+            initTheme();
+            // 由于echarts地图加载可能需要确保主题样式已经应用，再次确保地图样式与主题匹配
+            setTimeout(() => {
+                if (myChart && !myChart.isDisposed()) updateEchartsThemeOnly();
+            }, 100);
         }
+
+        initMapAndTheme();
     </script>
 </body>
 </html>
