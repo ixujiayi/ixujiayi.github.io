@@ -3,58 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的个人空间 | 摄影与生活</title>
+    <title>我的个人空间 | 行摄中国</title>
+    <!-- 引入 ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
-        /* 全局样式 */
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #f9f9f9; color: #333; }
+        /* 全局及导航栏样式 */
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #1a1a1a; color: #fff; }
         a { text-decoration: none; color: inherit; }
         
-        /* 导航栏样式 */
-        header { background-color: #fff; padding: 20px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 1000; }
+        header { background-color: #242424; padding: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.5); position: sticky; top: 0; z-index: 1000; }
         nav { display: flex; justify-content: center; gap: 40px; }
-        nav a { font-weight: bold; font-size: 16px; transition: color 0.3s; }
-        nav a:hover, nav a.active { color: #007bff; }
+        nav a { font-weight: bold; font-size: 16px; transition: color 0.3s; color: #bbb; }
+        nav a:hover, nav a.active { color: #ff9800; }
 
-        /* 摄影画廊（照片墙）样式 */
-        .gallery-container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
-        .gallery-header { text-align: center; margin-bottom: 40px; }
-        .gallery-header h1 { font-size: 32px; letter-spacing: 2px; }
-        .gallery-header p { color: #666; }
+        /* 地图容器 */
+        .map-wrapper { text-align: center; padding: 20px; }
+        .map-title { margin-bottom: 10px; font-size: 32px; letter-spacing: 4px; color: #fff; }
+        .map-subtitle { color: #888; margin-bottom: 20px; font-size: 14px; }
+        #china-map { width: 100%; max-width: 1200px; height: 700px; margin: 0 auto; }
 
-        /* CSS 网格布局 */
+        /* 全屏照片画廊弹窗 (隐藏状态) */
+        #gallery-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(15, 15, 15, 0.95); z-index: 2000;
+            overflow-y: auto; padding-top: 50px;
+        }
+        /* 关闭按钮 */
+        .close-btn {
+            position: fixed; top: 30px; right: 40px; font-size: 40px; color: #fff;
+            cursor: pointer; transition: color 0.3s; z-index: 2001;
+        }
+        .close-btn:hover { color: #ff9800; }
+        
+        /* 画廊内容区 */
+        .gallery-content { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .gallery-location-title { font-size: 36px; text-align: center; margin-bottom: 30px; color: #ff9800; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        
+        /* 照片网格 */
         .photo-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            grid-auto-rows: 250px;
             gap: 20px;
         }
-        .photo-item {
-            position: relative;
-            overflow: hidden;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-        }
-        .photo-item:hover { transform: translateY(-5px); }
-        .photo-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
-        .photo-item:hover img { transform: scale(1.05); }
-        
-        /* 照片悬浮文字 */
-        .photo-overlay {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            background: linear-gradient(transparent, rgba(0,0,0,0.7));
-            color: white; padding: 20px;
-            opacity: 0; transition: opacity 0.3s ease;
-        }
-        .photo-item:hover .photo-overlay { opacity: 1; }
+        .photo-card { background: #222; border-radius: 8px; overflow: hidden; }
+        .photo-card img { width: 100%; height: 250px; object-fit: cover; display: block; }
+        .photo-desc { padding: 15px; font-size: 14px; color: #ddd; text-align: center; }
     </style>
 </head>
 <body>
 
-    <!-- 顶部导航栏 -->
+    <!-- 导航栏 -->
     <header>
         <nav>
-            <a href="index.html" class="active">摄影作品</a>
+            <a href="index.html" class="active">摄影地图</a>
             <a href="essays.html">个人随笔</a>
             <a href="analog-circuits.html">模电心得</a>
             <a href="billion-records.html">百亿记录</a>
@@ -62,39 +63,172 @@
         </nav>
     </header>
 
-    <!-- 首页主视觉：摄影画廊 -->
-    <main class="gallery-container">
-        <div class="gallery-header">
-            <h1>光影记录</h1>
-            <p>用镜头捕捉生活的美好瞬间</p>
-        </div>
-
-        <!-- 照片墙 -->
-        <div class="photo-grid">
-            <!-- 照片1 -->
-            <div class="photo-item">
-                <!-- 替换为你自己的图片链接或仓库相对路径 -->
-                <img src="https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81?q=80&w=600" alt="风光摄影">
-                <div class="photo-overlay"><h3>日落大道</h3><p>2026 拍摄于某地</p></div>
-            </div>
-            <!-- 照片2 -->
-            <div class="photo-item">
-                <img src="https://images.unsplash.com/photo-1516802273409-68526ee1bdd6?q=80&w=600" alt="人像摄影">
-                <div class="photo-overlay"><h3>胶片记忆</h3><p>35mm 胶片</p></div>
-            </div>
-            <!-- 照片3 -->
-            <div class="photo-item">
-                <img src="https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=600" alt="微距摄影">
-                <div class="photo-overlay"><h3>微观世界</h3><p>自然与植物</p></div>
-            </div>
-            <!-- 照片4 -->
-            <div class="photo-item">
-                <img src="https://images.unsplash.com/photo-1502082553048-f009c37129b9?q=80&w=600" alt="街头摄影">
-                <div class="photo-overlay"><h3>街头漫步</h3><p>城市剪影</p></div>
-            </div>
-            <!-- 可以继续复制上述 .photo-item 块来添加更多照片 -->
-        </div>
+    <!-- 地图展示区 -->
+    <main class="map-wrapper">
+        <h1 class="map-title">光影足迹</h1>
+        <p class="map-subtitle">点击地图上的发光点，查看我在该地的摄影作品</p>
+        <!-- ECharts 渲染的容器 -->
+        <div id="china-map"></div>
     </main>
 
+    <!-- 弹出的画廊 (Modal) -->
+    <div id="gallery-modal">
+        <span class="close-btn" onclick="closeGallery()">&times;</span>
+        <div class="gallery-content">
+            <h2 class="gallery-location-title" id="location-name">地点名称</h2>
+            <div class="photo-grid" id="photo-grid-container">
+                <!-- 照片将由 JS 动态插入到这里 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 配置你的摄影数据
+        // value 是地点的经纬度 [经度, 纬度]
+        const photoData = [
+            {
+                name: "北京",
+                value: [116.405285, 39.904989],
+                photos: [
+                    { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫的角楼，日落时分" },
+                    { url: "https://images.unsplash.com/photo-1508804185872-d7bad4e99158?q=80&w=600", desc: "长城壮美的秋色" }
+                ]
+            },
+            {
+                name: "四川",
+                value: [104.065735, 30.659462], // 成都及周边
+                photos: [
+                    { url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "街头的人间烟火" }
+                ]
+            },
+            {
+                name: "西藏",
+                value: [91.1145, 29.64415], // 拉萨
+                photos: [
+                    { url: "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600", desc: "布达拉宫的信仰" },
+                    { url: "https://images.unsplash.com/photo-1610447545938-12c8ff6a9953?q=80&w=600", desc: "圣湖纳木错" },
+                    { url: "https://images.unsplash.com/photo-1582650734892-0b19280b5b11?q=80&w=600", desc: "远眺雪山" }
+                ]
+            },
+            {
+                name: "新疆",
+                value: [87.617733, 43.792818], // 乌鲁木齐为中心
+                photos: [
+                    { url: "https://images.unsplash.com/photo-1596484552834-6a58f851eb3f?q=80&w=600", desc: "喀纳斯的金秋" }
+                ]
+            }
+        ];
+
+        // 2. 初始化 ECharts 地图
+        const chartDom = document.getElementById('china-map');
+        const myChart = echarts.init(chartDom);
+
+        // 获取阿里云提供的中国地图 GeoJSON 数据
+        fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+            .then(response => response.json())
+            .then(geoJson => {
+                // 注册地图数据
+                echarts.registerMap('china', geoJson);
+                
+                // 配置项
+                const option = {
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: function (params) {
+                            return params.name + ' (' + params.data.photos.length + ' 张照片)';
+                        }
+                    },
+                    geo: {
+                        map: 'china',
+                        roam: true, // 允许鼠标缩放和平移
+                        zoom: 1.2,
+                        label: {
+                            emphasis: { show: false }
+                        },
+                        itemStyle: {
+                            normal: {
+                                areaColor: '#323c48',
+                                borderColor: '#111'
+                            },
+                            emphasis: {
+                                areaColor: '#2a333d' // 鼠标悬浮省份时的颜色
+                            }
+                        }
+                    },
+                    series: [
+                        {
+                            name: '摄影足迹',
+                            type: 'effectScatter', // 带有涟漪特效的散点图
+                            coordinateSystem: 'geo',
+                            data: photoData,
+                            symbolSize: 15,
+                            showEffectOn: 'render',
+                            rippleEffect: {
+                                brushType: 'stroke',
+                                scale: 4
+                            },
+                            label: {
+                                formatter: '{b}',
+                                position: 'right',
+                                show: true,
+                                color: '#fff'
+                            },
+                            itemStyle: {
+                                color: '#ff9800', // 坐标点的颜色（橙色）
+                                shadowBlur: 10,
+                                shadowColor: '#333'
+                            },
+                            zlevel: 1
+                        }
+                    ]
+                };
+
+                myChart.setOption(option);
+
+                // 3. 监听点击事件，打开画廊
+                myChart.on('click', function (params) {
+                    if (params.componentType === 'series') {
+                        openGallery(params.data);
+                    }
+                });
+            });
+
+        // 响应窗口大小变化
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+
+        // 4. 控制画廊弹窗的函数
+        const modal = document.getElementById('gallery-modal');
+        const locationTitle = document.getElementById('location-name');
+        const photoGrid = document.getElementById('photo-grid-container');
+
+        function openGallery(data) {
+            // 设置标题
+            locationTitle.innerText = "拍摄地：" + data.name;
+            // 清空旧照片
+            photoGrid.innerHTML = "";
+            // 动态生成照片卡片
+            data.photos.forEach(photo => {
+                const card = document.createElement('div');
+                card.className = 'photo-card';
+                card.innerHTML = `
+                    <img src="${photo.url}" alt="${photo.desc}">
+                    <div class="photo-desc">${photo.desc}</div>
+                `;
+                photoGrid.appendChild(card);
+            });
+            // 显示弹窗
+            modal.style.display = 'block';
+            // 防止底层页面滚动
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeGallery() {
+            modal.style.display = 'none';
+            // 恢复底层页面滚动
+            document.body.style.overflow = 'auto';
+        }
+    </script>
 </body>
 </html>
