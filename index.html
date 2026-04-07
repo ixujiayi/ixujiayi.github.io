@@ -6,10 +6,10 @@
     <title>我的个人空间 | 行摄中国</title>
     <!-- 引入 ECharts 核心库 -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <!-- 直接引入中国地图的 JS 文件（这样就不需要 fetch 请求了，本地双击直接可用） -->
+    <!-- 引入全国地图数据 -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
     <style>
-        /* 样式与之前完全一样 */
+        /* 基础与导航栏样式 */
         body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #1a1a1a; color: #fff; }
         a { text-decoration: none; color: inherit; }
         
@@ -18,17 +18,30 @@
         nav a { font-weight: bold; font-size: 16px; transition: color 0.3s; color: #bbb; }
         nav a:hover, nav a.active { color: #ff9800; }
 
+        /* 地图容器样式 */
         .map-wrapper { text-align: center; padding: 20px; }
         .map-title { margin-bottom: 10px; font-size: 32px; letter-spacing: 4px; color: #fff; }
         .map-subtitle { color: #888; margin-bottom: 20px; font-size: 14px; }
-        #china-map { width: 100%; max-width: 1200px; height: 700px; margin: 0 auto; }
+        
+        .map-container { position: relative; width: 100%; max-width: 1200px; margin: 0 auto; }
+        #china-map { width: 100%; height: 700px; }
+        
+        /* 返回全国按钮样式 */
+        .back-btn {
+            position: absolute; top: 20px; left: 20px; padding: 10px 20px;
+            background: #ff9800; color: #fff; border: none; border-radius: 5px;
+            cursor: pointer; font-weight: bold; font-size: 14px;
+            display: none; /* 默认隐藏 */
+            z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: background 0.3s;
+        }
+        .back-btn:hover { background: #e68a00; }
 
+        /* 画廊弹窗样式 */
         #gallery-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 15, 15, 0.95); z-index: 2000; overflow-y: auto; padding-top: 50px; }
         .close-btn { position: fixed; top: 30px; right: 40px; font-size: 40px; color: #fff; cursor: pointer; transition: color 0.3s; z-index: 2001; }
         .close-btn:hover { color: #ff9800; }
         .gallery-content { max-width: 1200px; margin: 0 auto; padding: 20px; }
         .gallery-location-title { font-size: 36px; text-align: center; margin-bottom: 30px; color: #ff9800; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        
         .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
         .photo-card { background: #222; border-radius: 8px; overflow: hidden; }
         .photo-card img { width: 100%; height: 250px; object-fit: cover; display: block; }
@@ -48,10 +61,16 @@
 
     <main class="map-wrapper">
         <h1 class="map-title">光影足迹</h1>
-        <p class="map-subtitle">点击地图上的发光点，查看我在该地的摄影作品</p>
-        <div id="china-map"></div>
+        <p class="map-subtitle" id="map-tip">点击带有橙色光点的省份可放大查看市区，点击光点查看摄影作品</p>
+        
+        <div class="map-container">
+            <!-- 返回按钮 -->
+            <button id="back-btn" class="back-btn" onclick="goBackToChina()">⟵ 返回全国</button>
+            <div id="china-map"></div>
+        </div>
     </main>
 
+    <!-- 画廊弹窗 -->
     <div id="gallery-modal">
         <span class="close-btn" onclick="closeGallery()">&times;</span>
         <div class="gallery-content">
@@ -61,83 +80,140 @@
     </div>
 
     <script>
+        // --- 数据配置区 ---
         const photoData = [
             {
-                name: "北京",
+                name: "北京市区", 
                 value: [116.405285, 39.904989],
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫的角楼，日落时分" },
-                    { url: "https://images.unsplash.com/photo-1508804185872-d7bad4e99158?q=80&w=600", desc: "长城壮美的秋色" }
+                    { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫的角楼" }
                 ]
             },
             {
-                name: "四川",
+                name: "成都市", 
                 value: [104.065735, 30.659462], 
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "街头的人间烟火" }
+                    { url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "成都街头的人间烟火" }
                 ]
             },
             {
-                name: "西藏",
+                name: "阿坝藏族羌族自治州", 
+                value: [102.221374, 31.899792], // 九寨沟附近坐标
+                photos: [
+                    { url: "https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?q=80&w=600", desc: "九寨沟的纯净水色" }
+                ]
+            },
+            {
+                name: "拉萨市", 
                 value: [91.1145, 29.64415], 
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600", desc: "布达拉宫的信仰" }
+                    { url: "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600", desc: "布达拉宫" }
                 ]
             }
         ];
 
-        // 初始化 ECharts 
-        const chartDom = document.getElementById('china-map');
-        const myChart = echarts.init(chartDom);
-
-        // 因为头部引入了 china.js，这里不再需要 fetch，直接设置 option 即可
-        const option = {
-            tooltip: {
-                trigger: 'item',
-                formatter: function (params) {
-                    if (params.data && params.data.photos) {
-                        return params.name + ' (' + params.data.photos.length + ' 张照片)';
-                    }
-                    return params.name;
-                }
-            },
-            geo: {
-                map: 'china', // china.js 已经自动注册了这个名字
-                roam: true, 
-                zoom: 1.2,
-                label: { emphasis: { show: false } },
-                itemStyle: {
-                    normal: { areaColor: '#323c48', borderColor: '#111' },
-                    emphasis: { areaColor: '#2a333d' }
-                }
-            },
-            series: [
-                {
-                    name: '摄影足迹',
-                    type: 'effectScatter', 
-                    coordinateSystem: 'geo',
-                    data: photoData,
-                    symbolSize: 15,
-                    showEffectOn: 'render',
-                    rippleEffect: { brushType: 'stroke', scale: 4 },
-                    label: { formatter: '{b}', position: 'right', show: true, color: '#fff' },
-                    itemStyle: { color: '#ff9800', shadowBlur: 10, shadowColor: '#333' },
-                    zlevel: 1
-                }
-            ]
+        // 各省份拼音字典（用于动态加载对应省份的地图JS文件）
+        const provincePinyin = {
+            '北京': 'beijing', '天津': 'tianjin', '上海': 'shanghai', '重庆': 'chongqing',
+            '河北': 'hebei', '山西': 'shanxi', '辽宁': 'liaoning', '吉林': 'jilin',
+            '黑龙江': 'heilongjiang', '江苏': 'jiangsu', '浙江': 'zhejiang', '安徽': 'anhui',
+            '福建': 'fujian', '江西': 'jiangxi', '山东': 'shandong', '河南': 'henan',
+            '湖北': 'hubei', '湖南': 'hunan', '广东': 'guangdong', '海南': 'hainan',
+            '四川': 'sichuan', '贵州': 'guizhou', '云南': 'yunnan', '陕西': 'shanxi1',
+            '甘肃': 'gansu', '青海': 'qinghai', '台湾': 'taiwan', '内蒙古': 'neimenggu',
+            '广西': 'guangxi', '西藏': 'xizang', '宁夏': 'ningxia', '新疆': 'xinjiang',
+            '香港': 'xianggang', '澳门': 'aomen'
         };
 
-        myChart.setOption(option);
+        // --- 地图初始化与渲染 ---
+        const chartDom = document.getElementById('china-map');
+        const myChart = echarts.init(chartDom);
+        let currentMap = 'china'; // 记录当前展示的地图级别
 
-        // 监听点击事件
+        // 核心配置：生成地图 Option
+        function getMapOption(mapName) {
+            return {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function (params) {
+                        if (params.data && params.data.photos) {
+                            return params.name + ' (' + params.data.photos.length + ' 张照片)<br>点击查看作品';
+                        }
+                        return params.name + (currentMap === 'china' ? '<br>点击进入该省份' : '');
+                    }
+                },
+                geo: {
+                    map: mapName,
+                    roam: true, // 允许缩放和平移
+                    zoom: 1.2,
+                    label: { emphasis: { show: false } },
+                    itemStyle: {
+                        normal: { areaColor: '#323c48', borderColor: '#111' },
+                        emphasis: { areaColor: '#4b5c6e' } // 鼠标悬浮高亮颜色
+                    }
+                },
+                series: [
+                    {
+                        name: '摄影足迹',
+                        type: 'effectScatter', 
+                        coordinateSystem: 'geo',
+                        data: photoData, // 坐标点数据全局通用，ECharts 会自动将其映射到对应的市
+                        symbolSize: 15,
+                        showEffectOn: 'render',
+                        rippleEffect: { brushType: 'stroke', scale: 4 },
+                        label: { formatter: '{b}', position: 'right', show: true, color: '#fff' },
+                        itemStyle: { color: '#ff9800', shadowBlur: 10, shadowColor: '#333' },
+                        zlevel: 1
+                    }
+                ]
+            };
+        }
+
+        // 初始化显示全国地图
+        myChart.setOption(getMapOption('china'));
+
+        // --- 交互逻辑：点击与下钻 ---
         myChart.on('click', function (params) {
-            if (params.componentType === 'series') {
+            // 1. 如果点击的是“光点”（摄影作品数据），则打开画廊
+            if (params.componentType === 'series' && params.seriesType === 'effectScatter') {
                 openGallery(params.data);
+            } 
+            // 2. 如果点击的是“地图省份区域”，并且当前在全国地图，则进行下钻
+            else if (params.componentType === 'geo' && currentMap === 'china') {
+                let provinceName = params.name;
+                
+                // 判断点击的省份在不在我们的字典里
+                if (provincePinyin[provinceName]) {
+                    let pinyin = provincePinyin[provinceName];
+                    
+                    // 动态加载该省份的市区地图数据文件
+                    let script = document.createElement('script');
+                    script.src = `https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/province/${pinyin}.js`;
+                    
+                    // 文件加载完成后，切换地图
+                    script.onload = function() {
+                        currentMap = provinceName; // 记录当前进入了哪个省
+                        myChart.setOption(getMapOption(provinceName)); // 更新地图配置
+                        document.getElementById('back-btn').style.display = 'block'; // 显示返回按钮
+                        document.getElementById('map-tip').innerText = `当前位置：${provinceName} （可拖拽或滚动鼠标缩放）`;
+                    };
+                    document.head.appendChild(script);
+                }
             }
         });
 
-        window.addEventListener('resize', function() { myChart.resize(); });
+        // 返回全国地图的函数
+        function goBackToChina() {
+            currentMap = 'china';
+            myChart.setOption(getMapOption('china')); // 重新切回 china
+            document.getElementById('back-btn').style.display = 'none'; // 隐藏返回按钮
+            document.getElementById('map-tip').innerText = '点击带有橙色光点的省份可放大查看市区，点击光点查看摄影作品';
+        }
 
+        // 窗口大小变化时自适应
+        window.addEventListener('resize', () => myChart.resize());
+
+        // --- 画廊弹窗逻辑 ---
         const modal = document.getElementById('gallery-modal');
         const locationTitle = document.getElementById('location-name');
         const photoGrid = document.getElementById('photo-grid-container');
