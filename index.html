@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的个人空间 | 行摄中国</title>
     
+    <!-- 引入 Leaflet 地图的 CSS 和 JS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 
     <style>
+        /* 全局及导航栏样式 */
         body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #1a1a1a; color: #fff; }
         a { text-decoration: none; color: inherit; }
         
@@ -21,9 +23,15 @@
         .map-title { margin-bottom: 10px; font-size: 32px; letter-spacing: 4px; color: #fff; }
         .map-subtitle { color: #888; margin-bottom: 20px; font-size: 14px; }
         
-        #china-map { width: 100%; max-width: 1200px; height: 650px; margin: 0 auto; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 1;}
+        /* 地图容器 */
+        #china-map { width: 100%; max-width: 1200px; height: 650px; margin: 0 auto; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 1; background: #000; }
 
-        /* 发光点样式 */
+        /* 🔥 核心魔法：将高德亮色地图转换为暗夜黑风格，且保留地名和边界！ */
+        .leaflet-tile-pane {
+            filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(110%);
+        }
+
+        /* 自定义地图标记点的样式（发光圆点） */
         .custom-marker {
             background-color: #ff9800;
             border-radius: 50%;
@@ -34,24 +42,17 @@
         }
         .custom-marker:hover { transform: scale(1.3); }
 
+        /* 画廊弹窗样式 */
         #gallery-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(15, 15, 15, 0.95); z-index: 10000;
-            overflow-y: auto; padding-top: 50px;
+            background-color: rgba(15, 15, 15, 0.95); z-index: 10000; overflow-y: auto; padding-top: 50px;
         }
-        .close-btn {
-            position: fixed; top: 30px; right: 40px; font-size: 40px; color: #fff;
-            cursor: pointer; transition: color 0.3s; z-index: 10001;
-        }
+        .close-btn { position: fixed; top: 30px; right: 40px; font-size: 40px; color: #fff; cursor: pointer; transition: color 0.3s; z-index: 10001; }
         .close-btn:hover { color: #ff9800; }
         .gallery-content { max-width: 1200px; margin: 0 auto; padding: 20px; }
         .gallery-location-title { font-size: 36px; text-align: center; margin-bottom: 30px; color: #ff9800; border-bottom: 1px solid #333; padding-bottom: 10px; }
         
-        .photo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
+        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
         .photo-card { background: #222; border-radius: 8px; overflow: hidden; }
         .photo-card img { width: 100%; height: 250px; object-fit: cover; display: block; }
         .photo-desc { padding: 15px; font-size: 14px; color: #ddd; text-align: center; }
@@ -71,7 +72,7 @@
 
     <main class="map-wrapper">
         <h1 class="map-title">光影足迹</h1>
-        <p class="map-subtitle">使用鼠标滚轮放大地图，可查看精确到地级市甚至景区的坐标</p>
+        <p class="map-subtitle">你可以滚动鼠标放大地图，精确到每一个地级市甚至街道</p>
         <div id="china-map"></div>
     </main>
 
@@ -84,82 +85,70 @@
     </div>
 
     <script>
-        // 初始化地图
-        const map = L.map('china-map').setView([35.8617, 104.1954], 4);
+        // 1. 初始化地图 (中心点设在中国中部，缩放级别为 5，稍微拉近一点)
+        const map = L.map('china-map').setView([35.8617, 104.1954], 5);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap',
-            subdomains: 'abcd',
-            maxZoom: 19 // 这里设置了最大可以放大到19级（能看清街道）
+        // 2. 加载“高德地图”标准版瓦片（包含了全国所有省、市、县、街道的精确划线和名称）
+        L.tileLayer('https://{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+            subdomains: ['webrd01', 'webrd02', 'webrd03', 'webrd04'], // 多域名加速加载
+            maxZoom: 18, // 最大可放大到 18 级（街道级别）
+            minZoom: 3,
+            attribution: '&copy; 高德地图'
         }).addTo(map);
 
-        // ==== 重点看这里：精确到市和景区的坐标数据 ====
+        // 3. 摄影数据：现在你可以精确把点标在任何一个城市了
+        // 格式仍然是：[纬度(北纬), 经度(东经)]
         const photoData = [
             {
                 name: "北京·故宫",
-                coords: [39.9163, 116.3971], // 精确到故宫博物院
+                coords: [39.916345, 116.397155], // 精确到故宫的坐标
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫角楼" }
-                ]
-            },
-            // 四川省下的多个不同城市/地点
-            {
-                name: "四川·成都（成华区）",
-                coords: [30.6594, 104.0657], // 成都市区
-                photos: [
-                    { url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "成都街头" }
+                    { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫的角楼，日落时分" }
                 ]
             },
             {
-                name: "四川·甘孜（稻城亚丁）",
-                coords: [28.5521, 100.3204], // 精确到稻城亚丁景区
+                name: "四川·甘孜藏族自治州",
+                coords: [30.04952, 101.96253], // 随便举例一个市州级别
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1582650734892-0b19280b5b11?q=80&w=600", desc: "最后的香格里拉" }
+                    { url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "川西的高原风光" }
                 ]
             },
             {
-                name: "四川·阿坝（九寨沟）",
-                coords: [33.2612, 103.9189], // 精确到九寨沟
+                name: "西藏·林芝市",
+                coords: [29.6366, 94.3615], // 精确到林芝市
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?q=80&w=600", desc: "九寨沟的秋水" }
-                ]
-            },
-            // 云南省下的多个城市
-            {
-                name: "云南·大理市",
-                coords: [25.5829, 100.2220], // 大理
-                photos: [
-                    { url: "https://images.unsplash.com/photo-1516802273409-68526ee1bdd6?q=80&w=600", desc: "苍山洱海" }
+                    { url: "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600", desc: "南迦巴瓦峰的日照金山" }
                 ]
             },
             {
-                name: "云南·丽江市",
-                coords: [26.8550, 100.2277], // 丽江古城
+                name: "新疆·阿勒泰地区",
+                coords: [47.8483, 88.1396], // 喀纳斯所在地区
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=600", desc: "丽江古城夜景" }
+                    { url: "https://images.unsplash.com/photo-1596484552834-6a58f851eb3f?q=80&w=600", desc: "喀纳斯的金秋" }
                 ]
             }
         ];
 
+        // 4. 在地图上添加发光点（逻辑不变）
         const glowIcon = L.divIcon({
             className: 'custom-marker',
-            iconSize: [14, 14], 
-            iconAnchor: [7, 7]  
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
         });
 
         photoData.forEach(data => {
             const marker = L.marker(data.coords, { icon: glowIcon }).addTo(map);
             
-            // 鼠标悬停提示
+            // 鼠标悬停显示地名提示框
             marker.bindTooltip(data.name, { direction: 'top', offset: [0, -10] });
 
-            // 点击点时，镜头平滑移动到该城市并放大，随后打开画廊
+            // 点击坐标点触发弹窗
             marker.on('click', () => {
-                // map.flyTo(data.coords, 8); // 如果你想点击后地图自动放大到该城市，取消这行代码的注释
                 openGallery(data);
             });
         });
 
+        // 5. 画廊控制
         const modal = document.getElementById('gallery-modal');
         const locationTitle = document.getElementById('location-name');
         const photoGrid = document.getElementById('photo-grid-container');
@@ -170,16 +159,19 @@
             data.photos.forEach(photo => {
                 const card = document.createElement('div');
                 card.className = 'photo-card';
-                card.innerHTML = `<img src="${photo.url}" alt="${photo.desc}"><div class="photo-desc">${photo.desc}</div>`;
+                card.innerHTML = `
+                    <img src="${photo.url}" alt="${photo.desc}">
+                    <div class="photo-desc">${photo.desc}</div>
+                `;
                 photoGrid.appendChild(card);
             });
             modal.style.display = 'block';
-            document.body.style.overflow = 'hidden'; 
+            document.body.style.overflow = 'hidden';
         }
 
         function closeGallery() {
             modal.style.display = 'none';
-            document.body.style.overflow = 'auto'; 
+            document.body.style.overflow = 'auto';
         }
     </script>
 </body>
