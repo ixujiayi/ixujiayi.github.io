@@ -129,11 +129,11 @@
         #china-map {
             width: 100%;
             height: 750px;
-            background-color: var(--bg-primary);  /* 地图背景随主题 */
+            background-color: var(--bg-primary);
             border-radius: 12px;
         }
 
-        /* 画廊弹窗 (主题适配) */
+        /* 画廊弹窗 */
         #gallery-modal {
             display: none;
             position: fixed;
@@ -198,7 +198,6 @@
             text-align: center;
         }
 
-        /* 响应式 */
         @media (max-width: 700px) {
             nav { gap: 20px; }
             .theme-toggle { margin-left: 0; margin-top: 8px; }
@@ -221,7 +220,7 @@
 
     <main class="map-wrapper">
         <h1 class="map-title">光影足迹</h1>
-        <p class="map-subtitle" id="map-tip">点击省份可放大查看市区，点击橙色光点查看摄影作品，随意拖拽缩放 | 主题跟随系统/可手动切换</p>
+        <p class="map-subtitle" id="map-tip">🗺️ 点击省份可下钻查看市区地图，点击橙色光点查看摄影作品 | 主题跟随系统/可手动切换</p>
         
         <div class="map-container">
             <div id="china-map"></div>
@@ -238,13 +237,13 @@
     </div>
 
     <script>
-        // ---------- 摄影作品数据 (保持不变) ----------
+        // ---------- 摄影作品数据 ----------
         const photoData = [
             {
                 name: "北京市区", 
                 value: [116.405285, 39.904989],
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫的角楼 · 历史光影" }
+                    { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫角楼 · 历史光影" }
                 ]
             },
             {
@@ -270,7 +269,7 @@
             }
         ];
 
-        // 各省份拼音字典（用于下钻）
+        // 省份拼音映射表（用于动态加载省份地图js文件）
         const provincePinyin = {
             '北京': 'beijing', '天津': 'tianjin', '上海': 'shanghai', '重庆': 'chongqing',
             '河北': 'hebei', '山西': 'shanxi', '辽宁': 'liaoning', '吉林': 'jilin',
@@ -283,48 +282,55 @@
             '香港': 'xianggang', '澳门': 'aomen'
         };
 
-        // ---------- 地图实例与全局状态 ----------
+        // ---------- 地图实例与状态 ----------
         const chartDom = document.getElementById('china-map');
-        const myChart = echarts.init(chartDom);
-        let currentProvince = null;      // null=全国视图, 有值=下钻到的省份名
-        let currentMapName = 'china';    // 当前注册的地图名称
+        let myChart = null;
+        let currentProvince = null;     // 当前下钻的省份名，null表示全国视图
 
-        // ---------- 根据主题获取地图样式配置 (动态颜色) ----------
+        // ---------- 主题样式辅助函数 ----------
         function getGeoThemeStyle() {
-            // 获取当前body是否light类
             const isLight = document.body.classList.contains('light');
             return {
                 areaColor: isLight ? '#e9f0f5' : '#323c48',
                 borderColor: isLight ? '#cbd5e1' : '#111111',
                 emphasisAreaColor: isLight ? '#cfdfef' : '#4b5c6e',
-                labelColor: isLight ? '#1f2a3e' : 'rgba(255,255,255,0.5)',
+                labelColor: isLight ? '#1f2a3e' : 'rgba(255,255,255,0.6)',
                 labelEmphasisColor: isLight ? '#e67e22' : '#ffffff',
-                tooltipBg: isLight ? 'rgba(255,255,245,0.95)' : 'rgba(30,30,40,0.96)',
+                tooltipBg: isLight ? 'rgba(255,255,245,0.96)' : 'rgba(30,30,40,0.96)',
                 tooltipBorder: isLight ? '#ccc' : '#ff9800'
             };
         }
 
-        // 生成地图配置 (通用，用于初始化或下钻时)
-        function getMapOption(mapName, center = null, zoom = 1.2) {
+        // 生成地图配置 (mapName: 'china' 或省份拼音)
+        function getMapOption(mapName, center = null, zoom = 1) {
             const style = getGeoThemeStyle();
+            const isLight = document.body.classList.contains('light');
+            // 根据地图类型设置默认缩放级别：全国1.2，省份下钻建议更高（后续调用时可传入zoom）
+            const defaultZoom = (mapName === 'china') ? 1.2 : 1.5;
+            const finalZoom = zoom !== undefined ? zoom : defaultZoom;
+            
             return {
                 tooltip: {
                     trigger: 'item',
                     backgroundColor: style.tooltipBg,
                     borderColor: style.tooltipBorder,
                     borderWidth: 1,
-                    textStyle: { color: document.body.classList.contains('light') ? '#1e293b' : '#f0f0f0' },
+                    textStyle: { color: isLight ? '#1e293b' : '#f0f0f0' },
                     formatter: function (params) {
                         if (params.seriesType === 'effectScatter') {
                             return params.name + ' (' + params.data.photos.length + ' 张照片)<br>✨ 点击查看作品';
                         }
-                        return params.name + (!currentProvince && provincePinyin[params.name] ? '<br>📌 点击查看各市' : '');
+                        // 下钻模式下的提示（省级地图点击市区没有进一步下钻）
+                        if (currentProvince) {
+                            return params.name;
+                        }
+                        return params.name + (provincePinyin[params.name] ? '<br>📌 点击查看各市' : '');
                     }
                 },
                 geo: {
                     map: mapName,
                     roam: true,
-                    zoom: zoom,
+                    zoom: finalZoom,
                     center: center,
                     label: {
                         normal: {
@@ -362,7 +368,7 @@
                             formatter: '{b}',
                             position: 'right',
                             show: true,
-                            color: document.body.classList.contains('light') ? '#2c3e50' : '#fff',
+                            color: isLight ? '#2c3e50' : '#ffffff',
                             fontWeight: 'bold',
                             fontSize: 12,
                             offset: [8, 0]
@@ -378,14 +384,19 @@
             };
         }
 
-        // 更新地图主题（不改变下钻状态/中心/缩放，只改变样式）
-        function updateEchartsThemeOnly() {
-            if (!myChart) return;
+        // 更新地图主题（仅改变样式，不改变地图状态）
+        function updateThemeOnly() {
+            if (!myChart || myChart.isDisposed()) return;
             const currentOption = myChart.getOption();
             if (!currentOption.geo) return;
             const style = getGeoThemeStyle();
-            // 更新 geo 样式
-            const newGeoOption = {
+            const isLight = document.body.classList.contains('light');
+            myChart.setOption({
+                tooltip: {
+                    backgroundColor: style.tooltipBg,
+                    borderColor: style.tooltipBorder,
+                    textStyle: { color: isLight ? '#1e293b' : '#f0f0f0' }
+                },
                 geo: {
                     itemStyle: {
                         normal: {
@@ -401,135 +412,129 @@
                         emphasis: { color: style.labelEmphasisColor }
                     }
                 },
-                tooltip: {
-                    backgroundColor: style.tooltipBg,
-                    borderColor: style.tooltipBorder,
-                    textStyle: { color: document.body.classList.contains('light') ? '#1e293b' : '#f0f0f0' }
-                },
-                series: currentOption.series.map(s => {
-                    if (s.type === 'effectScatter' && s.label) {
-                        return {
-                            ...s,
-                            label: { ...s.label, color: document.body.classList.contains('light') ? '#2c3e50' : '#ffffff' }
-                        };
-                    }
-                    return s;
-                })
-            };
-            // 合并更新，不清除现有状态 (notMerge = false)
-            myChart.setOption(newGeoOption, false);
+                series: [{
+                    label: { color: isLight ? '#2c3e50' : '#ffffff' }
+                }]
+            }, false);
         }
 
-        // ---------- 下钻与合并地图 (保留原有逻辑，同时支持主题更新后重新渲染时保持状态) ----------
+        // ---------- 核心：省份下钻（稳健版） ----------
         function drillDownToProvince(provinceName) {
-            let pinyin = provincePinyin[provinceName];
-            let scriptId = 'map-script-' + pinyin;
+            if (currentProvince === provinceName) return;
+            const pinyin = provincePinyin[provinceName];
+            if (!pinyin) return;
             
+            // 动态加载省份地图js
+            const scriptId = `map-${pinyin}`;
             if (!document.getElementById(scriptId)) {
-                let script = document.createElement('script');
+                const script = document.createElement('script');
                 script.id = scriptId;
                 script.src = `https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/province/${pinyin}.js`;
-                script.onload = () => mergeAndRenderMap(provinceName);
+                script.onload = () => {
+                    renderProvinceMap(provinceName, pinyin);
+                };
+                script.onerror = () => {
+                    console.error(`加载 ${provinceName} 地图失败`);
+                    alert(`无法加载 ${provinceName} 地图数据，请检查网络后重试。`);
+                };
                 document.head.appendChild(script);
             } else {
-                mergeAndRenderMap(provinceName);
+                renderProvinceMap(provinceName, pinyin);
             }
         }
 
-        function mergeAndRenderMap(provinceName) {
-            let chinaMap = echarts.getMap('china');
-            let provMap = echarts.getMap(provinceName);
-            
-            let chinaGeo = chinaMap.geoJSON || chinaMap.geoJson;
-            let provGeo = provMap.geoJSON || provMap.geoJson;
-            
-            let mergedFeatures = [];
-            let centerPoint = null;
-
-            chinaGeo.features.forEach(f => {
-                if (f.properties.name === provinceName) {
-                    centerPoint = f.properties.cp; 
-                } else {
-                    mergedFeatures.push(f);
+        function renderProvinceMap(provinceName, pinyin) {
+            try {
+                // 获取省份地图 geoJSON 数据 (echarts 已注册)
+                const provMap = echarts.getMap(provinceName);
+                if (!provMap || !provMap.geoJSON) {
+                    console.warn(`没有获取到 ${provinceName} 的 geoJSON`);
+                    return;
                 }
-            });
-
-            mergedFeatures = mergedFeatures.concat(provGeo.features);
-
-            const mergedMapName = 'merged_china_' + provinceName;
-            echarts.registerMap(mergedMapName, {
-                type: 'FeatureCollection',
-                features: mergedFeatures
-            });
-
-            currentProvince = provinceName;
-            currentMapName = mergedMapName;
-            document.getElementById('map-tip').innerHTML = `📍 当前位置：${provinceName} （点击周边省份或空白处可返回全国，滚轮可缩放） | 主题可切换`;
-
-            if (!centerPoint && provGeo.features.length > 0) {
-                centerPoint = provGeo.features[0].properties.cp;
+                // 重新注册一份以 provinceName 为名的地图（确保存在）
+                // 注意：echarts 自带的省份地图注册名就是 provinceName 本身，直接使用即可
+                // 我们直接设置地图名称为 provinceName
+                currentProvince = provinceName;
+                document.getElementById('map-tip').innerHTML = `📍 当前查看：${provinceName} 市级地图（点击地图空白处返回全国） | 主题可切换`;
+                
+                // 获取省份中心点（从geo特征中计算或使用默认）
+                let center = null;
+                if (provMap.geoJSON && provMap.geoJSON.features && provMap.geoJSON.features.length > 0) {
+                    // 尝试获取第一个feature的cp属性
+                    const firstFeat = provMap.geoJSON.features[0];
+                    if (firstFeat.properties && firstFeat.properties.cp) {
+                        center = firstFeat.properties.cp;
+                    }
+                }
+                // 设置地图配置，省份地图缩放比稍大
+                const option = getMapOption(provinceName, center, 1.6);
+                myChart.setOption(option, true);
+            } catch (err) {
+                console.error("渲染省份地图出错", err);
+                alert("渲染失败，请刷新页面重试");
             }
-            // 获取最新主题样式
-            const option = getMapOption(mergedMapName, centerPoint, 5);
-            myChart.setOption(option, true);
         }
 
-        // 返回全国视图
+        // 返回全国地图
         function returnToChina() {
+            if (currentProvince === null) return;
             currentProvince = null;
-            currentMapName = 'china';
-            document.getElementById('map-tip').innerHTML = '🗺️ 点击省份可放大查看市区，点击橙色光点查看摄影作品，随意拖拽缩放 | 主题跟随系统/可手动切换';
+            document.getElementById('map-tip').innerHTML = '🗺️ 点击省份可下钻查看市区地图，点击橙色光点查看摄影作品 | 主题跟随系统/可手动切换';
             const option = getMapOption('china', null, 1.2);
             myChart.setOption(option, true);
         }
 
-        // 监听地图点击事件（下钻 + 摄影弹窗）
-        myChart.on('click', function (params) {
-            if (params.componentType === 'series' && params.seriesType === 'effectScatter') {
-                openGallery(params.data);
-                return;
-            } 
-            
-            if (params.componentType === 'geo') {
-                let clickedName = params.name;
-                if (!currentProvince) {
-                    if (provincePinyin[clickedName]) {
-                        drillDownToProvince(clickedName);
-                    }
-                } else {
-                    // 下钻模式下，判断点击的是否属于当前省份的市区（简单检测：获取当前合并地图geoJSON特征）
-                    let currentMapGeo = echarts.getMap(currentMapName);
-                    let geoJson = currentMapGeo.geoJSON || currentMapGeo.geoJson;
-                    let isCityInside = false;
-                    if (geoJson && geoJson.features) {
-                        isCityInside = geoJson.features.some(f => f.properties.name === clickedName);
-                    }
-                    if (!isCityInside) {
-                        returnToChina();
+        // ---------- 地图事件绑定 ----------
+        function bindMapEvents() {
+            myChart.off('click');      // 避免重复绑定
+            myChart.on('click', function (params) {
+                // 处理摄影光点点击
+                if (params.componentType === 'series' && params.seriesType === 'effectScatter') {
+                    openGallery(params.data);
+                    return;
+                }
+                // 处理地图区域点击
+                if (params.componentType === 'geo') {
+                    const clickedName = params.name;
+                    if (!currentProvince) {
+                        // 全国模式：判断是否为可下钻省份
+                        if (provincePinyin[clickedName]) {
+                            drillDownToProvince(clickedName);
+                        }
+                    } else {
+                        // 省级模式下：点击任何区域（通常是市/区），不进行下钻，但保留功能扩展点
+                        // 目前不做进一步下钻，点击市区只显示提示（或者空操作）
+                        // 但为了交互友好，不做返回操作（只有点击空白处才返回）
+                        // 此处什么都不做，由空白区域点击负责返回
                     }
                 }
-            }
+            });
+            
+            // 点击地图空白区域（背景）返回全国
+            myChart.getZr().off('click');
+            myChart.getZr().on('click', function (event) {
+                // 判断是否点击在图形元素上
+                if (!event.target) {
+                    if (currentProvince !== null) {
+                        returnToChina();
+                    }
+                } else {
+                    // 如果点击目标有父级且为echarts图形，避免误判；但通常target存在表示点中了元素，不处理空白返回
+                }
+            });
+        }
+
+        // 窗口大小自适应
+        window.addEventListener('resize', () => {
+            if (myChart && !myChart.isDisposed()) myChart.resize();
         });
 
-        // 点击空白区域返回全国
-        myChart.getZr().on('click', function (event) {
-            if (!event.target && currentProvince) {
-                returnToChina();
-            }
-        });
-
-        // 窗口自适应
-        window.addEventListener('resize', () => myChart.resize());
-
-        // ---------- 主题切换核心 (系统配置 + 手动) ----------
-        // 检测系统主题
+        // ---------- 主题切换 (系统+手动) ----------
+        let userOverrideFlag = false;
         function getSystemTheme() {
             return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
-
-        // 应用主题到body，并更新地图样式 + 按钮文字
-        let currentTheme = 'dark'; // 记录当前主题
-
+        let currentTheme = 'dark';
         function applyTheme(theme) {
             if (theme === 'light') {
                 document.body.classList.add('light');
@@ -540,65 +545,33 @@
                 currentTheme = 'dark';
                 document.getElementById('theme-switch-btn').innerHTML = '🌙 暗夜模式';
             }
-            // 更新地图内视觉样式 (保留地图状态，不重新下钻)
             if (myChart && !myChart.isDisposed()) {
-                updateEchartsThemeOnly();
-                // 额外处理系列中effectScatter的文字颜色及地图label动态变化后可能遗留问题，二次确保
-                // 同时如果地图实例中散点图颜色微调
-                const curOpt = myChart.getOption();
-                if (curOpt.series && curOpt.series[0]) {
-                    const newLabelColor = theme === 'light' ? '#2c3e50' : '#ffffff';
-                    myChart.setOption({
-                        series: [{
-                            label: { color: newLabelColor }
-                        }]
-                    }, false);
-                }
+                updateThemeOnly();
             }
         }
-
-        // 手动切换事件
         function toggleTheme() {
-            if (currentTheme === 'dark') {
-                applyTheme('light');
-            } else {
-                applyTheme('dark');
-            }
+            userOverrideFlag = true;
+            if (currentTheme === 'dark') applyTheme('light');
+            else applyTheme('dark');
         }
-
-        // 监听系统主题变化 (自动适配)
-        const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        function handleSystemThemeChange(e) {
-            // 如果没有手动覆盖过？为了方便，让系统自动跟随：只要用户没点击过按钮覆盖，我们就自动变。我们增加一个标志
-            if (!userOverrideFlag) {
-                const newTheme = e.matches ? 'dark' : 'light';
-                applyTheme(newTheme);
-            }
-        }
-        let userOverrideFlag = false;  // 用户手动切换后将不再自动跟随系统（体验更好）
-        darkModeMediaQuery.addEventListener('change', (e) => {
-            if (!userOverrideFlag) {
-                applyTheme(e.matches ? 'dark' : 'light');
-            }
-        });
-
-        // 初始化主题：根据系统配置，同时绑定手动按钮
         function initTheme() {
             const sysTheme = getSystemTheme();
             applyTheme(sysTheme);
-            userOverrideFlag = false; // 初始未手动覆盖
-            const btn = document.getElementById('theme-switch-btn');
-            btn.addEventListener('click', () => {
-                toggleTheme();
-                userOverrideFlag = true;   // 用户手动点击后，不再自动跟随系统（除非刷新页面）
-            });
+            userOverrideFlag = false;
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const themeChangeHandler = (e) => {
+                if (!userOverrideFlag) {
+                    applyTheme(e.matches ? 'dark' : 'light');
+                }
+            };
+            mediaQuery.addEventListener('change', themeChangeHandler);
+            document.getElementById('theme-switch-btn').addEventListener('click', toggleTheme);
         }
 
         // ---------- 画廊弹窗逻辑 ----------
         const modal = document.getElementById('gallery-modal');
         const locationTitle = document.getElementById('location-name');
         const photoGrid = document.getElementById('photo-grid-container');
-
         function openGallery(data) {
             locationTitle.innerText = "📸 拍摄地：" + data.name;
             photoGrid.innerHTML = "";
@@ -611,30 +584,30 @@
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
         }
-
         window.closeGallery = function() {
             modal.style.display = 'none';
             document.body.style.overflow = 'auto';
         };
-
-        // 点击模态背景关闭（可选）
         modal.addEventListener('click', function(e) {
             if (e.target === modal) closeGallery();
         });
 
-        // 初始化所有 (地图、主题)
-        function initMapAndTheme() {
-            // 先注册初始地图
+        // ---------- 初始化地图 ----------
+        function initMap() {
+            if (myChart) myChart.dispose();
+            myChart = echarts.init(chartDom);
+            // 设置全国地图
             myChart.setOption(getMapOption('china', null, 1.2));
-            // 绑定全局返回辅助 (保留原生)
-            initTheme();
-            // 由于echarts地图加载可能需要确保主题样式已经应用，再次确保地图样式与主题匹配
-            setTimeout(() => {
-                if (myChart && !myChart.isDisposed()) updateEchartsThemeOnly();
-            }, 100);
+            bindMapEvents();
         }
 
-        initMapAndTheme();
+        // 启动所有
+        initMap();
+        initTheme();
+        // 保证主题与地图样式完全同步
+        setTimeout(() => {
+            if (myChart && !myChart.isDisposed()) updateThemeOnly();
+        }, 100);
     </script>
 </body>
 </html>
