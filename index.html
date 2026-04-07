@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>行摄中国 | 光影足迹 · 双主题地图相册</title>
+    <title>行摄中国 | 双主题地图 · 可点击市级区划</title>
     <!-- ECharts 核心库 -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <!-- 全国地图数据 (包含各省轮廓) -->
+    <!-- 全国地图数据 -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
     <style>
         * {
@@ -193,7 +193,7 @@
     </header>
     <main class="map-wrapper">
         <h1 class="map-title">光影足迹</h1>
-        <p class="map-subtitle" id="map-tip">🗺️ 点击省份 -> 放大显示市级区划 + 周边省界 | 橙色光点为摄影作品 | 主题自适应</p>
+        <p class="map-subtitle" id="map-tip">🗺️ 点击省份 → 显示市级区划（可点击） | 橙色光点为摄影作品 | 主题自适应</p>
         <div class="map-container">
             <div id="china-map"></div>
         </div>
@@ -207,15 +207,19 @@
     </div>
 
     <script>
-        // ---------- 摄影作品数据 ----------
+        // ---------- 摄影作品数据 (城市名尽量与地图市级名称匹配) ----------
         const photoData = [
-            { name: "北京市区", value: [116.405285, 39.904989], photos: [{ url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫角楼 · 历史光影" }] },
+            { name: "北京市", value: [116.405285, 39.904989], photos: [{ url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫角楼 · 历史光影" }] },
             { name: "成都市", value: [104.065735, 30.659462], photos: [{ url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "成都街头 · 人间烟火" }] },
             { name: "阿坝藏族羌族自治州", value: [102.221374, 31.899792], photos: [{ url: "https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?q=80&w=600", desc: "九寨沟 · 纯净水色" }] },
             { name: "拉萨市", value: [91.1145, 29.64415], photos: [{ url: "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600", desc: "布达拉宫 · 圣洁日光" }] }
         ];
 
-        // 省份拼音映射 (用于加载省地图)
+        // 建立城市名到摄影数据的映射 (方便快速查找)
+        const photoMap = new Map();
+        photoData.forEach(item => { photoMap.set(item.name, item); });
+
+        // 省份拼音映射
         const provincePinyin = {
             '北京':'beijing','天津':'tianjin','上海':'shanghai','重庆':'chongqing',
             '河北':'hebei','山西':'shanxi','辽宁':'liaoning','吉林':'jilin',
@@ -229,24 +233,23 @@
         };
 
         let myChart = null;
-        let currentProvince = null;      // 当前下钻的省份名，null表示全国视图
-        let currentMergedMapName = null; // 当前使用的合并地图注册名
+        let currentProvince = null;          // 当前下钻的省份名
+        let currentMergedMapName = null;     // 当前合并地图注册名
 
         // ---------- 主题样式 ----------
         function getThemeStyle() {
             const isLight = document.body.classList.contains('light');
             return {
-                bgPrimary: isLight ? '#f5f7fa' : '#1a1a1a',
-                areaColorDefault: isLight ? '#e9f0f5' : '#323c48',      // 邻省填充色
+                areaColorDefault: isLight ? '#e9f0f5' : '#323c48',
                 borderColor: isLight ? '#cbd5e1' : '#111111',
-                highlightAreaColor: isLight ? '#facc15' : '#ff9800',    // 当前省份高亮色
+                highlightAreaColor: isLight ? '#facc15' : '#ff9800',  // 当前省份高亮色
                 labelColor: isLight ? '#1f2a3e' : 'rgba(255,255,255,0.7)',
                 labelEmphasis: isLight ? '#e67e22' : '#ffffff',
                 tooltipBg: isLight ? 'rgba(255,255,245,0.96)' : 'rgba(30,30,40,0.96)'
             };
         }
 
-        // 生成地图配置 (通用)
+        // 生成地图配置 (支持高亮省份)
         function getMapOption(mapName, center = null, zoom = 1.2, highlightProvince = null) {
             const style = getThemeStyle();
             const isLight = document.body.classList.contains('light');
@@ -263,7 +266,9 @@
                         }
                         if (params.componentSubType === 'geo') {
                             if (!currentProvince && provincePinyin[params.name]) 
-                                return params.name + '<br>📌 点击查看市级区划 + 周边省份';
+                                return params.name + '<br>📌 点击查看市级区划';
+                            // 下钻模式下，点击市级区域会提示
+                            if (currentProvince) return params.name + '<br>📸 点击查看摄影作品（如有）';
                             return params.name;
                         }
                         return params.name;
@@ -286,7 +291,6 @@
                         },
                         emphasis: { areaColor: '#6c8db0' }
                     },
-                    // 如果传入了高亮省份，通过 regions 配置单独样式
                     regions: highlightProvince ? [{
                         name: highlightProvince,
                         itemStyle: { normal: { areaColor: style.highlightAreaColor, borderWidth: 1.5, borderColor: '#ffaa33' } },
@@ -308,14 +312,13 @@
             };
         }
 
-        // 仅更新主题样式 (保留地图状态)
+        // 仅更新主题样式 (保留地图状态和 regions)
         function updateThemeOnly() {
             if (!myChart || myChart.isDisposed()) return;
             const style = getThemeStyle();
             const isLight = document.body.classList.contains('light');
             const currentOpt = myChart.getOption();
             if (!currentOpt.geo) return;
-            // 保留原有的 regions 高亮设置
             let regions = currentOpt.geo[0]?.regions || [];
             if (currentProvince && regions.length === 0) {
                 regions = [{ name: currentProvince, itemStyle: { normal: { areaColor: style.highlightAreaColor } } }];
@@ -331,13 +334,13 @@
             }, false);
         }
 
-        // ---------- 核心：合并地图（全国轮廓 + 省级精细市界）----------
+        // ---------- 核心：合并全国地图 + 省份精细地图 (保留邻省，添加市级区划) ----------
         async function drillDownToProvince(provinceName) {
             if (currentProvince === provinceName) return;
             const pinyin = provincePinyin[provinceName];
             if (!pinyin) return;
             
-            // 确保省份地图 js 已加载
+            // 动态加载省份地图js
             const scriptId = `map-${pinyin}`;
             if (!document.getElementById(scriptId)) {
                 await new Promise((resolve, reject) => {
@@ -349,21 +352,19 @@
                     document.head.appendChild(script);
                 });
             }
-            // 获取全国 geoJSON 和 省份 geoJSON
             const chinaMap = echarts.getMap('china');
             const provMap = echarts.getMap(provinceName);
             if (!chinaMap.geoJSON || !provMap.geoJSON) {
                 alert(`无法获取 ${provinceName} 地图数据`);
                 return;
             }
-            const chinaGeo = JSON.parse(JSON.stringify(chinaMap.geoJSON)); // 深拷贝
+            const chinaGeo = JSON.parse(JSON.stringify(chinaMap.geoJSON));
             const provGeo = provMap.geoJSON;
             
-            // 合并：移除全国中该省份的特征，然后添加省份的精细特征（市级别）
+            // 保留其他省份轮廓，替换当前省份为市级精细边界
             const otherFeatures = chinaGeo.features.filter(f => f.properties.name !== provinceName);
-            // 省份精细特征 (包含多个市/区)
-            const provFeatures = provGeo.features;
-            const mergedFeatures = [...otherFeatures, ...provFeatures];
+            const cityFeatures = provGeo.features;   // 市级/区县级边界
+            const mergedFeatures = [...otherFeatures, ...cityFeatures];
             
             const mergedMapName = `merged_${provinceName}_${Date.now()}`;
             echarts.registerMap(mergedMapName, {
@@ -374,38 +375,34 @@
             currentProvince = provinceName;
             currentMergedMapName = mergedMapName;
             
-            // 计算地图显示中心：优先使用省份的中心点 (cp)
+            // 计算地图中心（从省份边界获取）
             let center = null;
             if (provGeo.features.length > 0 && provGeo.features[0].properties.cp) {
                 center = provGeo.features[0].properties.cp;
             } else {
-                // 粗略估算
-                const bounds = { minLng: 180, maxLng: -180, minLat: 90, maxLat: -90 };
+                // 粗略计算边界中心
+                let minLng = 180, maxLng = -180, minLat = 90, maxLat = -90;
+                const extractCoords = (coords) => {
+                    coords.forEach(coord => {
+                        if (typeof coord[0] === 'number') {
+                            minLng = Math.min(minLng, coord[0]);
+                            maxLng = Math.max(maxLng, coord[0]);
+                            minLat = Math.min(minLat, coord[1]);
+                            maxLat = Math.max(maxLat, coord[1]);
+                        } else {
+                            extractCoords(coord);
+                        }
+                    });
+                };
                 provGeo.features.forEach(f => {
-                    if (f.geometry.type === 'Polygon') {
-                        f.geometry.coordinates[0].forEach(coord => {
-                            bounds.minLng = Math.min(bounds.minLng, coord[0]);
-                            bounds.maxLng = Math.max(bounds.maxLng, coord[0]);
-                            bounds.minLat = Math.min(bounds.minLat, coord[1]);
-                            bounds.maxLat = Math.max(bounds.maxLat, coord[1]);
-                        });
-                    } else if (f.geometry.type === 'MultiPolygon') {
-                        f.geometry.coordinates.forEach(poly => {
-                            poly[0].forEach(coord => {
-                                bounds.minLng = Math.min(bounds.minLng, coord[0]);
-                                bounds.maxLng = Math.max(bounds.maxLng, coord[0]);
-                                bounds.minLat = Math.min(bounds.minLat, coord[1]);
-                                bounds.maxLat = Math.max(bounds.maxLat, coord[1]);
-                            });
-                        });
-                    }
+                    if (f.geometry.type === 'Polygon') extractCoords(f.geometry.coordinates);
+                    else if (f.geometry.type === 'MultiPolygon') f.geometry.coordinates.forEach(poly => extractCoords(poly));
                 });
-                center = [(bounds.minLng + bounds.maxLng) / 2, (bounds.minLat + bounds.maxLat) / 2];
+                center = [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
             }
-            // 缩放级别调大以看清市级区划
             const option = getMapOption(mergedMapName, center, 1.8, provinceName);
             myChart.setOption(option, true);
-            document.getElementById('map-tip').innerHTML = `📍 当前查看：${provinceName} 市级区划（周边省界保留） | 点击地图空白区域返回全国视图`;
+            document.getElementById('map-tip').innerHTML = `📍 当前：${provinceName} 市级区划（周边省界保留） | 点击任意市可查看摄影作品 | 点击空白区域返回全国`;
         }
 
         // 返回全国地图
@@ -415,23 +412,36 @@
             currentMergedMapName = null;
             const option = getMapOption('china', null, 1.2, null);
             myChart.setOption(option, true);
-            document.getElementById('map-tip').innerHTML = '🗺️ 点击省份 -> 放大显示市级区划 + 周边省界 | 橙色光点为摄影作品';
+            document.getElementById('map-tip').innerHTML = '🗺️ 点击省份 → 显示市级区划（可点击） | 橙色光点为摄影作品 | 主题自适应';
         }
 
-        // ---------- 事件绑定 ----------
+        // ---------- 处理市级区域点击 (下钻模式下) ----------
+        function handleCityClick(cityName) {
+            if (!currentProvince) return;
+            // 查找该城市是否有摄影作品
+            const photoItem = photoMap.get(cityName);
+            if (photoItem) {
+                openGallery(photoItem);
+            } else {
+                // 友好提示：暂无摄影作品
+                alert(`📸 暂无“${cityName}”的摄影作品，欢迎下次补充。`);
+            }
+        }
+
+        // ---------- 地图事件绑定 (支持市级点击) ----------
         function bindEvents() {
             myChart.off('click');
             myChart.on('click', (params) => {
-                // 摄影光点
+                // 1. 优先处理摄影光点
                 if (params.componentType === 'series' && params.seriesType === 'effectScatter') {
                     openGallery(params.data);
                     return;
                 }
-                // 地图区域点击
+                // 2. 地图区域点击
                 if (params.componentType === 'geo') {
                     const clickedName = params.name;
                     if (!currentProvince) {
-                        // 全国模式下，只有可下钻省份才响应
+                        // 全国模式：点击省份下钻
                         if (provincePinyin[clickedName]) {
                             drillDownToProvince(clickedName).catch(err => {
                                 console.error(err);
@@ -439,8 +449,26 @@
                             });
                         }
                     } else {
-                        // 下钻模式下点击任何区域（市或邻省）不做下钻，但也不返回（避免误触）
-                        // 保持现状
+                        // 下钻模式：点击的是市级区域（或者邻省）
+                        // 判断该区域是否属于当前省份的市级区划（通过检查名称是否在 provinceFeatures 中）
+                        // 简单方法：如果点击的不是当前省份名称且不是邻省名称（邻省仍会触发，但我们只响应市级）
+                        // 更准确：通过地图数据判断该区域是否属于市级（名称长度或特征），这里直接调用城市处理函数
+                        // 避免误点邻省触发提示，但邻省也是可点击的，我们限制只有市级名称才响应，否则忽略
+                        // 获取当前合并地图中所有市级名称（即 provinceFeatures 中的 name）
+                        const provMap = echarts.getMap(currentProvince);
+                        if (provMap && provMap.geoJSON) {
+                            const cityNames = provMap.geoJSON.features.map(f => f.properties.name);
+                            if (cityNames.includes(clickedName)) {
+                                handleCityClick(clickedName);
+                            } else {
+                                // 点击了周边省份或无关区域，不做响应，但保持空白返回功能
+                                // 可选轻微提示，但不干扰
+                                // console.log("点击了非市级区域：" + clickedName);
+                            }
+                        } else {
+                            // 降级处理：只要不是当前省份名称本身，就当作城市点击
+                            if (clickedName !== currentProvince) handleCityClick(clickedName);
+                        }
                     }
                 }
             });
@@ -511,7 +539,6 @@
         }
         initMap();
         initTheme();
-        // 确保主题样式同步
         setTimeout(() => { if (myChart) updateThemeOnly(); }, 100);
     </script>
 </body>
