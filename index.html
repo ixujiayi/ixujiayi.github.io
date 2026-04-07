@@ -5,12 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的个人空间 | 行摄中国</title>
     
-    <!-- 引入 Leaflet 地图的 CSS 和 JS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 
     <style>
-        /* 全局及导航栏样式 */
         body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #1a1a1a; color: #fff; }
         a { text-decoration: none; color: inherit; }
         
@@ -19,15 +17,13 @@
         nav a { font-weight: bold; font-size: 16px; transition: color 0.3s; color: #bbb; }
         nav a:hover, nav a.active { color: #ff9800; }
 
-        /* 地图容器 */
         .map-wrapper { text-align: center; padding: 20px; }
         .map-title { margin-bottom: 10px; font-size: 32px; letter-spacing: 4px; color: #fff; }
         .map-subtitle { color: #888; margin-bottom: 20px; font-size: 14px; }
         
-        /* 设置地图宽高，必须有高度才能显示 */
         #china-map { width: 100%; max-width: 1200px; height: 650px; margin: 0 auto; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 1;}
 
-        /* 自定义地图标记点的样式（发光圆点） */
+        /* 发光点样式 */
         .custom-marker {
             background-color: #ff9800;
             border-radius: 50%;
@@ -38,7 +34,6 @@
         }
         .custom-marker:hover { transform: scale(1.3); }
 
-        /* 全屏照片画廊弹窗 */
         #gallery-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(15, 15, 15, 0.95); z-index: 10000;
@@ -64,7 +59,6 @@
 </head>
 <body>
 
-    <!-- 导航栏 -->
     <header>
         <nav>
             <a href="index.html" class="active">摄影地图</a>
@@ -75,119 +69,117 @@
         </nav>
     </header>
 
-    <!-- 地图展示区 -->
     <main class="map-wrapper">
         <h1 class="map-title">光影足迹</h1>
-        <p class="map-subtitle">点击地图上的发光点，查看我在该地的摄影作品（可滚动鼠标缩放地图）</p>
+        <p class="map-subtitle">使用鼠标滚轮放大地图，可查看精确到地级市甚至景区的坐标</p>
         <div id="china-map"></div>
     </main>
 
-    <!-- 弹出的画廊 (Modal) -->
     <div id="gallery-modal">
         <span class="close-btn" onclick="closeGallery()">&times;</span>
         <div class="gallery-content">
             <h2 class="gallery-location-title" id="location-name">地点名称</h2>
-            <div class="photo-grid" id="photo-grid-container">
-                <!-- 照片由 JS 插入 -->
-            </div>
+            <div class="photo-grid" id="photo-grid-container"></div>
         </div>
     </div>
 
     <script>
-        // 1. 初始化地图 (中心点设在中国中部，缩放级别为 4)
+        // 初始化地图
         const map = L.map('china-map').setView([35.8617, 104.1954], 4);
 
-        // 2. 加载“暗夜黑”风格的地图瓦片 (CartoDB Dark Matter)
-        // 这个加载的是真实的地图切片图片，本地绝对能看到！
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            attribution: '&copy; OpenStreetMap',
             subdomains: 'abcd',
-            maxZoom: 19
+            maxZoom: 19 // 这里设置了最大可以放大到19级（能看清街道）
         }).addTo(map);
 
-        // 3. 配置你的摄影数据
-        // 注意：这里的坐标格式是 [纬度, 经度] ！(北纬在前，东经在后)
+        // ==== 重点看这里：精确到市和景区的坐标数据 ====
         const photoData = [
             {
-                name: "北京",
-                coords: [39.904989, 116.405285],
+                name: "北京·故宫",
+                coords: [39.9163, 116.3971], // 精确到故宫博物院
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫的角楼，日落时分" },
-                    { url: "https://images.unsplash.com/photo-1508804185872-d7bad4e99158?q=80&w=600", desc: "长城壮美的秋色" }
+                    { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫角楼" }
+                ]
+            },
+            // 四川省下的多个不同城市/地点
+            {
+                name: "四川·成都（成华区）",
+                coords: [30.6594, 104.0657], // 成都市区
+                photos: [
+                    { url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "成都街头" }
                 ]
             },
             {
-                name: "四川·成都",
-                coords: [30.659462, 104.065735], 
+                name: "四川·甘孜（稻城亚丁）",
+                coords: [28.5521, 100.3204], // 精确到稻城亚丁景区
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "街头的人间烟火" }
+                    { url: "https://images.unsplash.com/photo-1582650734892-0b19280b5b11?q=80&w=600", desc: "最后的香格里拉" }
                 ]
             },
             {
-                name: "西藏·拉萨",
-                coords: [29.64415, 91.1145], 
+                name: "四川·阿坝（九寨沟）",
+                coords: [33.2612, 103.9189], // 精确到九寨沟
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600", desc: "布达拉宫的信仰" }
+                    { url: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?q=80&w=600", desc: "九寨沟的秋水" }
+                ]
+            },
+            // 云南省下的多个城市
+            {
+                name: "云南·大理市",
+                coords: [25.5829, 100.2220], // 大理
+                photos: [
+                    { url: "https://images.unsplash.com/photo-1516802273409-68526ee1bdd6?q=80&w=600", desc: "苍山洱海" }
                 ]
             },
             {
-                name: "新疆·乌鲁木齐",
-                coords: [43.792818, 87.617733], 
+                name: "云南·丽江市",
+                coords: [26.8550, 100.2277], // 丽江古城
                 photos: [
-                    { url: "https://images.unsplash.com/photo-1596484552834-6a58f851eb3f?q=80&w=600", desc: "喀纳斯的金秋" }
+                    { url: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=600", desc: "丽江古城夜景" }
                 ]
             }
         ];
 
-        // 4. 在地图上添加发光点
-        // 创建一个发光点的图标样式
         const glowIcon = L.divIcon({
             className: 'custom-marker',
-            iconSize: [16, 16], // 圆点大小
-            iconAnchor: [8, 8]  // 偏移量，使其居中
+            iconSize: [14, 14], 
+            iconAnchor: [7, 7]  
         });
 
-        // 循环遍历数据，把点标在地图上
         photoData.forEach(data => {
             const marker = L.marker(data.coords, { icon: glowIcon }).addTo(map);
             
-            // 鼠标悬停时显示地名提示
+            // 鼠标悬停提示
             marker.bindTooltip(data.name, { direction: 'top', offset: [0, -10] });
 
-            // 点击点时，打开摄影画廊
+            // 点击点时，镜头平滑移动到该城市并放大，随后打开画廊
             marker.on('click', () => {
+                // map.flyTo(data.coords, 8); // 如果你想点击后地图自动放大到该城市，取消这行代码的注释
                 openGallery(data);
             });
         });
 
-        // 5. 控制画廊弹窗的代码
         const modal = document.getElementById('gallery-modal');
         const locationTitle = document.getElementById('location-name');
         const photoGrid = document.getElementById('photo-grid-container');
 
         function openGallery(data) {
-            // 设置标题
             locationTitle.innerText = "拍摄地：" + data.name;
-            // 清空旧照片
             photoGrid.innerHTML = "";
-            // 动态生成照片卡片
             data.photos.forEach(photo => {
                 const card = document.createElement('div');
                 card.className = 'photo-card';
-                card.innerHTML = `
-                    <img src="${photo.url}" alt="${photo.desc}">
-                    <div class="photo-desc">${photo.desc}</div>
-                `;
+                card.innerHTML = `<img src="${photo.url}" alt="${photo.desc}"><div class="photo-desc">${photo.desc}</div>`;
                 photoGrid.appendChild(card);
             });
-            // 显示弹窗
             modal.style.display = 'block';
-            document.body.style.overflow = 'hidden'; // 防止底层滚动
+            document.body.style.overflow = 'hidden'; 
         }
 
         function closeGallery() {
             modal.style.display = 'none';
-            document.body.style.overflow = 'auto'; // 恢复滚动
+            document.body.style.overflow = 'auto'; 
         }
     </script>
 </body>
