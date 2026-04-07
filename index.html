@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="
+width=device-width, initial-scale=1.0">
     <title>我的个人空间 | 行摄中国</title>
     <!-- 引入 ECharts 核心库 -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
@@ -24,18 +25,8 @@
         .map-subtitle { color: #888; margin-bottom: 20px; font-size: 14px; }
         
         .map-container { position: relative; width: 100%; max-width: 1200px; margin: 0 auto; }
-        #china-map { width: 100%; height: 700px; }
+        #china-map { width: 100%; height: 750px; }
         
-        /* 返回全国按钮样式 */
-        .back-btn {
-            position: absolute; top: 20px; left: 20px; padding: 10px 20px;
-            background: #ff9800; color: #fff; border: none; border-radius: 5px;
-            cursor: pointer; font-weight: bold; font-size: 14px;
-            display: none; /* 默认隐藏 */
-            z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: background 0.3s;
-        }
-        .back-btn:hover { background: #e68a00; }
-
         /* 画廊弹窗样式 */
         #gallery-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 15, 15, 0.95); z-index: 2000; overflow-y: auto; padding-top: 50px; }
         .close-btn { position: fixed; top: 30px; right: 40px; font-size: 40px; color: #fff; cursor: pointer; transition: color 0.3s; z-index: 2001; }
@@ -61,11 +52,9 @@
 
     <main class="map-wrapper">
         <h1 class="map-title">光影足迹</h1>
-        <p class="map-subtitle" id="map-tip">点击带有橙色光点的省份可放大查看市区，点击光点查看摄影作品</p>
+        <p class="map-subtitle" id="map-tip">点击省份可放大查看市区，点击橙色光点查看摄影作品，随意拖拽缩放</p>
         
         <div class="map-container">
-            <!-- 返回按钮 -->
-            <button id="back-btn" class="back-btn" onclick="goBackToChina()">⟵ 返回全国</button>
             <div id="china-map"></div>
         </div>
     </main>
@@ -80,7 +69,7 @@
     </div>
 
     <script>
-        // --- 数据配置区 ---
+        // --- 摄影作品数据配置区 ---
         const photoData = [
             {
                 name: "北京市区", 
@@ -98,7 +87,7 @@
             },
             {
                 name: "阿坝藏族羌族自治州", 
-                value: [102.221374, 31.899792], // 九寨沟附近坐标
+                value: [102.221374, 31.899792], 
                 photos: [
                     { url: "https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?q=80&w=600", desc: "九寨沟的纯净水色" }
                 ]
@@ -112,7 +101,7 @@
             }
         ];
 
-        // 各省份拼音字典（用于动态加载对应省份的地图JS文件）
+        // 各省份拼音字典
         const provincePinyin = {
             '北京': 'beijing', '天津': 'tianjin', '上海': 'shanghai', '重庆': 'chongqing',
             '河北': 'hebei', '山西': 'shanxi', '辽宁': 'liaoning', '吉林': 'jilin',
@@ -125,31 +114,35 @@
             '香港': 'xianggang', '澳门': 'aomen'
         };
 
-        // --- 地图初始化与渲染 ---
+        // --- 地图核心逻辑 ---
         const chartDom = document.getElementById('china-map');
         const myChart = echarts.init(chartDom);
-        let currentMap = 'china'; // 记录当前展示的地图级别
+        let currentProvince = null; // 记录当前是否处于“下钻”状态（null表示在全国视图）
 
-        // 核心配置：生成地图 Option
-        function getMapOption(mapName) {
+        // 生成地图的配置项
+        // center: 地图中心坐标 | zoom: 缩放级别
+        function getMapOption(mapName, center = null, zoom = 1.2) {
             return {
                 tooltip: {
                     trigger: 'item',
                     formatter: function (params) {
-                        if (params.data && params.data.photos) {
+                        // 如果是发光点
+                        if (params.seriesType === 'effectScatter') {
                             return params.name + ' (' + params.data.photos.length + ' 张照片)<br>点击查看作品';
                         }
-                        return params.name + (currentMap === 'china' ? '<br>点击进入该省份' : '');
+                        // 如果是地图板块
+                        return params.name + (!currentProvince && provincePinyin[params.name] ? '<br>点击查看各市' : '');
                     }
                 },
                 geo: {
                     map: mapName,
-                    roam: true, // 允许缩放和平移
-                    zoom: 1.2,
+                    roam: true, // 开启鼠标缩放和平移漫游
+                    zoom: zoom,
+                    center: center,
                     label: { emphasis: { show: false } },
                     itemStyle: {
                         normal: { areaColor: '#323c48', borderColor: '#111' },
-                        emphasis: { areaColor: '#4b5c6e' } // 鼠标悬浮高亮颜色
+                        emphasis: { areaColor: '#4b5c6e' } 
                     }
                 },
                 series: [
@@ -157,7 +150,7 @@
                         name: '摄影足迹',
                         type: 'effectScatter', 
                         coordinateSystem: 'geo',
-                        data: photoData, // 坐标点数据全局通用，ECharts 会自动将其映射到对应的市
+                        data: photoData,
                         symbolSize: 15,
                         showEffectOn: 'render',
                         rippleEffect: { brushType: 'stroke', scale: 4 },
@@ -169,48 +162,119 @@
             };
         }
 
-        // 初始化显示全国地图
+        // 初始加载全国地图
         myChart.setOption(getMapOption('china'));
 
-        // --- 交互逻辑：点击与下钻 ---
+        // 1. 监听点击地图板块或光点
         myChart.on('click', function (params) {
-            // 1. 如果点击的是“光点”（摄影作品数据），则打开画廊
+            // 情况 A：点击了摄影发光点 -> 打开画廊，并阻止后续的地图下钻逻辑
             if (params.componentType === 'series' && params.seriesType === 'effectScatter') {
                 openGallery(params.data);
+                return;
             } 
-            // 2. 如果点击的是“地图省份区域”，并且当前在全国地图，则进行下钻
-            else if (params.componentType === 'geo' && currentMap === 'china') {
-                let provinceName = params.name;
-                
-                // 判断点击的省份在不在我们的字典里
-                if (provincePinyin[provinceName]) {
-                    let pinyin = provincePinyin[provinceName];
+            
+            // 情况 B：点击了地图板块
+            if (params.componentType === 'geo') {
+                let clickedName = params.name;
+
+                if (!currentProvince) {
+                    // 当前在全国视图，点击省份 -> 下钻
+                    if (provincePinyin[clickedName]) {
+                        drillDownToProvince(clickedName);
+                    }
+                } else {
+                    // 当前在下钻视图，判断点击的是不是当前省份内部的市
+                    // 获取当前省份的 GeoJSON 数据
+                    let provMapData = echarts.getMap(currentProvince);
+                    let provGeo = provMapData.geoJSON || provMapData.geoJson;
                     
-                    // 动态加载该省份的市区地图数据文件
-                    let script = document.createElement('script');
-                    script.src = `https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/province/${pinyin}.js`;
+                    // 判断点击的名字是否属于这个省份
+                    let isCityInside = provGeo.features.some(f => f.properties.name === clickedName);
                     
-                    // 文件加载完成后，切换地图
-                    script.onload = function() {
-                        currentMap = provinceName; // 记录当前进入了哪个省
-                        myChart.setOption(getMapOption(provinceName)); // 更新地图配置
-                        document.getElementById('back-btn').style.display = 'block'; // 显示返回按钮
-                        document.getElementById('map-tip').innerText = `当前位置：${provinceName} （可拖拽或滚动鼠标缩放）`;
-                    };
-                    document.head.appendChild(script);
+                    if (!isCityInside) {
+                        // 点击了周边其他省份（省外位置） -> 自动返回全国
+                        returnToChina();
+                    }
                 }
             }
         });
 
-        // 返回全国地图的函数
-        function goBackToChina() {
-            currentMap = 'china';
-            myChart.setOption(getMapOption('china')); // 重新切回 china
-            document.getElementById('back-btn').style.display = 'none'; // 隐藏返回按钮
-            document.getElementById('map-tip').innerText = '点击带有橙色光点的省份可放大查看市区，点击光点查看摄影作品';
+        // 2. 监听点击地图背景空白处（例如大海或图表边缘无地图区域）
+        myChart.getZr().on('click', function (event) {
+            // 如果 event.target 为空，说明没有点中任何 ECharts 元素
+            if (!event.target && currentProvince) {
+                returnToChina();
+            }
+        });
+
+        // --- 核心：下钻与合并地图数据 ---
+        function drillDownToProvince(provinceName) {
+            let pinyin = provincePinyin[provinceName];
+            let scriptId = 'map-script-' + pinyin;
+            
+            // 动态加载该省份的 JS 文件
+            if (!document.getElementById(scriptId)) {
+                let script = document.createElement('script');
+                script.id = scriptId;
+                script.src = `https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/province/${pinyin}.js`;
+                script.onload = () => mergeAndRenderMap(provinceName);
+                document.head.appendChild(script);
+            } else {
+                mergeAndRenderMap(provinceName);
+            }
         }
 
-        // 窗口大小变化时自适应
+        function mergeAndRenderMap(provinceName) {
+            // 获取全国和该省的原始地理数据
+            let chinaMap = echarts.getMap('china');
+            let provMap = echarts.getMap(provinceName);
+            
+            let chinaGeo = chinaMap.geoJSON || chinaMap.geoJson;
+            let provGeo = provMap.geoJSON || provMap.geoJson;
+            
+            let mergedFeatures = [];
+            let centerPoint = null;
+
+            // 1. 把全国地图中除了被点击省份之外的其他省份加入数组
+            chinaGeo.features.forEach(f => {
+                if (f.properties.name === provinceName) {
+                    // 顺便记录一下这个省份的中心坐标，用来缩放镜头
+                    centerPoint = f.properties.cp; 
+                } else {
+                    mergedFeatures.push(f);
+                }
+            });
+
+            // 2. 把该省份内部的各个市加入数组
+            mergedFeatures = mergedFeatures.concat(provGeo.features);
+
+            // 3. 注册一张全新的合并地图
+            echarts.registerMap('merged_china', {
+                type: 'FeatureCollection',
+                features: mergedFeatures
+            });
+
+            currentProvince = provinceName; // 标记进入下钻状态
+            document.getElementById('map-tip').innerText = `当前位置：${provinceName} （点击周边省份或空白处可返回全国，滚轮可缩放）`;
+
+            // 如果该省没提供中心点，用第一个市的中心兜底
+            if (!centerPoint && provGeo.features.length > 0) {
+                centerPoint = provGeo.features[0].properties.cp;
+            }
+
+            // 更新地图配置，将镜头拉近到 centerPoint，缩放级别设为 5
+            myChart.setOption(getMapOption('merged_china', centerPoint, 5));
+        }
+
+        // 返回全国视图
+        function returnToChina() {
+            currentProvince = null;
+            document.getElementById('map-tip').innerText = '点击省份可放大查看市区，点击橙色光点查看摄影作品，随意拖拽缩放';
+            // 恢复全国视图，中心点清空，缩放恢复默认 1.2
+            myChart.setOption(getMapOption('china', null, 1.2));
+        }
+
+        // 窗口大小自适应
         window.addEventListener('resize', () => myChart.resize());
 
         // --- 画廊弹窗逻辑 ---
