@@ -4,38 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的个人空间 | 行摄中国</title>
-    <!-- 引入 ECharts 核心库 -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <!-- 直接引入中国地图的 JS 文件（这样就不需要 fetch 请求了，本地双击直接可用） -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
+    
+    <!-- 引入 Leaflet 地图的 CSS 和 JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+
     <style>
-        /* 样式与之前完全一样 */
+        /* 全局及导航栏样式 */
         body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #1a1a1a; color: #fff; }
         a { text-decoration: none; color: inherit; }
         
-        header { background-color: #242424; padding: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.5); position: sticky; top: 0; z-index: 1000; }
+        header { background-color: #242424; padding: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.5); position: sticky; top: 0; z-index: 9999; }
         nav { display: flex; justify-content: center; gap: 40px; }
         nav a { font-weight: bold; font-size: 16px; transition: color 0.3s; color: #bbb; }
         nav a:hover, nav a.active { color: #ff9800; }
 
+        /* 地图容器 */
         .map-wrapper { text-align: center; padding: 20px; }
         .map-title { margin-bottom: 10px; font-size: 32px; letter-spacing: 4px; color: #fff; }
         .map-subtitle { color: #888; margin-bottom: 20px; font-size: 14px; }
-        #china-map { width: 100%; max-width: 1200px; height: 700px; margin: 0 auto; }
+        
+        /* 设置地图宽高，必须有高度才能显示 */
+        #china-map { width: 100%; max-width: 1200px; height: 650px; margin: 0 auto; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 1;}
 
-        #gallery-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 15, 15, 0.95); z-index: 2000; overflow-y: auto; padding-top: 50px; }
-        .close-btn { position: fixed; top: 30px; right: 40px; font-size: 40px; color: #fff; cursor: pointer; transition: color 0.3s; z-index: 2001; }
+        /* 自定义地图标记点的样式（发光圆点） */
+        .custom-marker {
+            background-color: #ff9800;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px #ff9800, 0 0 20px #ff9800;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .custom-marker:hover { transform: scale(1.3); }
+
+        /* 全屏照片画廊弹窗 */
+        #gallery-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(15, 15, 15, 0.95); z-index: 10000;
+            overflow-y: auto; padding-top: 50px;
+        }
+        .close-btn {
+            position: fixed; top: 30px; right: 40px; font-size: 40px; color: #fff;
+            cursor: pointer; transition: color 0.3s; z-index: 10001;
+        }
         .close-btn:hover { color: #ff9800; }
         .gallery-content { max-width: 1200px; margin: 0 auto; padding: 20px; }
         .gallery-location-title { font-size: 36px; text-align: center; margin-bottom: 30px; color: #ff9800; border-bottom: 1px solid #333; padding-bottom: 10px; }
         
-        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
         .photo-card { background: #222; border-radius: 8px; overflow: hidden; }
         .photo-card img { width: 100%; height: 250px; object-fit: cover; display: block; }
         .photo-desc { padding: 15px; font-size: 14px; color: #ddd; text-align: center; }
     </style>
 </head>
 <body>
+
+    <!-- 导航栏 -->
     <header>
         <nav>
             <a href="index.html" class="active">摄影地图</a>
@@ -46,118 +75,119 @@
         </nav>
     </header>
 
+    <!-- 地图展示区 -->
     <main class="map-wrapper">
         <h1 class="map-title">光影足迹</h1>
-        <p class="map-subtitle">点击地图上的发光点，查看我在该地的摄影作品</p>
+        <p class="map-subtitle">点击地图上的发光点，查看我在该地的摄影作品（可滚动鼠标缩放地图）</p>
         <div id="china-map"></div>
     </main>
 
+    <!-- 弹出的画廊 (Modal) -->
     <div id="gallery-modal">
         <span class="close-btn" onclick="closeGallery()">&times;</span>
         <div class="gallery-content">
             <h2 class="gallery-location-title" id="location-name">地点名称</h2>
-            <div class="photo-grid" id="photo-grid-container"></div>
+            <div class="photo-grid" id="photo-grid-container">
+                <!-- 照片由 JS 插入 -->
+            </div>
         </div>
     </div>
 
     <script>
+        // 1. 初始化地图 (中心点设在中国中部，缩放级别为 4)
+        const map = L.map('china-map').setView([35.8617, 104.1954], 4);
+
+        // 2. 加载“暗夜黑”风格的地图瓦片 (CartoDB Dark Matter)
+        // 这个加载的是真实的地图切片图片，本地绝对能看到！
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        // 3. 配置你的摄影数据
+        // 注意：这里的坐标格式是 [纬度, 经度] ！(北纬在前，东经在后)
         const photoData = [
             {
                 name: "北京",
-                value: [116.405285, 39.904989],
+                coords: [39.904989, 116.405285],
                 photos: [
                     { url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫的角楼，日落时分" },
                     { url: "https://images.unsplash.com/photo-1508804185872-d7bad4e99158?q=80&w=600", desc: "长城壮美的秋色" }
                 ]
             },
             {
-                name: "四川",
-                value: [104.065735, 30.659462], 
+                name: "四川·成都",
+                coords: [30.659462, 104.065735], 
                 photos: [
                     { url: "https://images.unsplash.com/photo-1552652613-2d250f242551?q=80&w=600", desc: "街头的人间烟火" }
                 ]
             },
             {
-                name: "西藏",
-                value: [91.1145, 29.64415], 
+                name: "西藏·拉萨",
+                coords: [29.64415, 91.1145], 
                 photos: [
                     { url: "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600", desc: "布达拉宫的信仰" }
+                ]
+            },
+            {
+                name: "新疆·乌鲁木齐",
+                coords: [43.792818, 87.617733], 
+                photos: [
+                    { url: "https://images.unsplash.com/photo-1596484552834-6a58f851eb3f?q=80&w=600", desc: "喀纳斯的金秋" }
                 ]
             }
         ];
 
-        // 初始化 ECharts 
-        const chartDom = document.getElementById('china-map');
-        const myChart = echarts.init(chartDom);
-
-        // 因为头部引入了 china.js，这里不再需要 fetch，直接设置 option 即可
-        const option = {
-            tooltip: {
-                trigger: 'item',
-                formatter: function (params) {
-                    if (params.data && params.data.photos) {
-                        return params.name + ' (' + params.data.photos.length + ' 张照片)';
-                    }
-                    return params.name;
-                }
-            },
-            geo: {
-                map: 'china', // china.js 已经自动注册了这个名字
-                roam: true, 
-                zoom: 1.2,
-                label: { emphasis: { show: false } },
-                itemStyle: {
-                    normal: { areaColor: '#323c48', borderColor: '#111' },
-                    emphasis: { areaColor: '#2a333d' }
-                }
-            },
-            series: [
-                {
-                    name: '摄影足迹',
-                    type: 'effectScatter', 
-                    coordinateSystem: 'geo',
-                    data: photoData,
-                    symbolSize: 15,
-                    showEffectOn: 'render',
-                    rippleEffect: { brushType: 'stroke', scale: 4 },
-                    label: { formatter: '{b}', position: 'right', show: true, color: '#fff' },
-                    itemStyle: { color: '#ff9800', shadowBlur: 10, shadowColor: '#333' },
-                    zlevel: 1
-                }
-            ]
-        };
-
-        myChart.setOption(option);
-
-        // 监听点击事件
-        myChart.on('click', function (params) {
-            if (params.componentType === 'series') {
-                openGallery(params.data);
-            }
+        // 4. 在地图上添加发光点
+        // 创建一个发光点的图标样式
+        const glowIcon = L.divIcon({
+            className: 'custom-marker',
+            iconSize: [16, 16], // 圆点大小
+            iconAnchor: [8, 8]  // 偏移量，使其居中
         });
 
-        window.addEventListener('resize', function() { myChart.resize(); });
+        // 循环遍历数据，把点标在地图上
+        photoData.forEach(data => {
+            const marker = L.marker(data.coords, { icon: glowIcon }).addTo(map);
+            
+            // 鼠标悬停时显示地名提示
+            marker.bindTooltip(data.name, { direction: 'top', offset: [0, -10] });
 
+            // 点击点时，打开摄影画廊
+            marker.on('click', () => {
+                openGallery(data);
+            });
+        });
+
+        // 5. 控制画廊弹窗的代码
         const modal = document.getElementById('gallery-modal');
         const locationTitle = document.getElementById('location-name');
         const photoGrid = document.getElementById('photo-grid-container');
 
         function openGallery(data) {
+            // 设置标题
             locationTitle.innerText = "拍摄地：" + data.name;
+            // 清空旧照片
             photoGrid.innerHTML = "";
+            // 动态生成照片卡片
             data.photos.forEach(photo => {
                 const card = document.createElement('div');
                 card.className = 'photo-card';
-                card.innerHTML = `<img src="${photo.url}" alt="${photo.desc}"><div class="photo-desc">${photo.desc}</div>`;
+                card.innerHTML = `
+                    <img src="${photo.url}" alt="${photo.desc}">
+                    <div class="photo-desc">${photo.desc}</div>
+                `;
                 photoGrid.appendChild(card);
             });
+            // 显示弹窗
             modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden'; // 防止底层滚动
         }
 
         function closeGallery() {
             modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
+            document.body.style.overflow = 'auto'; // 恢复滚动
         }
     </script>
 </body>
