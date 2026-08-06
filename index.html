@@ -3,23 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>行摄中国 | 双主题地图 · 可点击市级区划</title>
-    <!-- ECharts 核心库 -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <!-- 全国地图数据 -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
+    <title>光影足迹 · 行摄中国交互地图</title>
+    <meta name="description" content="光影足迹：可点击的中国省市交互摄影地图，记录每一次旅途中的光影瞬间。">
+    <meta name="author" content="ixujiayi">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta property="og:title" content="光影足迹 · 行摄中国交互地图">
+    <meta property="og:description" content="可点击的中国省市交互摄影地图，记录每一次旅途中的光影瞬间。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ixujiayi.github.io/">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%F0%9F%93%B7%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://registry.npmmirror.com" crossorigin>
+    <script>
+        // 首屏绘制前应用主题，避免深/浅色闪烁；记住用户手动选择
+        (function () {
+            var theme = 'dark';
+            try {
+                var saved = localStorage.getItem('theme');
+                if (saved === 'light' || saved === 'dark') {
+                    theme = saved;
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                    theme = 'light';
+                }
+            } catch (e) { /* 隐私模式下忽略 */ }
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <style>
         * {
+            box-sizing: border-box;
             transition: background-color 0.25s ease, border-color 0.2s ease, color 0.2s ease;
         }
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
+        html {
+            scroll-behavior: smooth;
         }
         :root {
+            color-scheme: dark;
             --bg-primary: #1a1a1a;
             --bg-secondary: #242424;
             --bg-card: #222;
@@ -31,7 +50,8 @@
             --nav-hover: #ff9800;
             --card-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
-        body.light {
+        :root[data-theme="light"] {
+            color-scheme: light;
             --bg-primary: #f5f7fa;
             --bg-secondary: #ffffff;
             --bg-card: #ffffff;
@@ -42,6 +62,14 @@
             --border-color: #e2e8f0;
             --nav-hover: #e67e22;
             --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
         }
         header {
             background-color: var(--bg-secondary);
@@ -58,15 +86,22 @@
             gap: 40px;
             align-items: center;
             flex-wrap: wrap;
+            padding: 0 16px;
         }
-        nav a {
+        nav a, .nav-soon {
             font-weight: bold;
             font-size: 16px;
             color: var(--text-secondary);
             transition: color 0.3s;
+            text-decoration: none;
         }
         nav a:hover, nav a.active {
             color: var(--nav-hover);
+        }
+        .nav-soon {
+            color: var(--text-muted);
+            opacity: 0.7;
+            cursor: default;
         }
         .theme-toggle {
             background: none;
@@ -80,6 +115,7 @@
             background-color: var(--bg-primary);
             transition: all 0.2s;
             margin-left: 20px;
+            flex-shrink: 0;
         }
         .theme-toggle:hover {
             background-color: var(--nav-hover);
@@ -89,6 +125,8 @@
         .map-wrapper {
             text-align: center;
             padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
         }
         .map-title {
             margin-bottom: 10px;
@@ -113,6 +151,69 @@
             background-color: var(--bg-primary);
             border-radius: 12px;
         }
+        .map-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 12px 22px;
+            border-radius: 999px;
+            font-size: 14px;
+            box-shadow: var(--card-shadow);
+            z-index: 5;
+            white-space: nowrap;
+        }
+        .map-loading[hidden] {
+            display: none;
+        }
+        section {
+            scroll-margin-top: 96px;
+        }
+        .section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .section-title {
+            font-size: 28px;
+            letter-spacing: 2px;
+            text-align: center;
+            color: var(--text-primary);
+            margin: 0 0 8px;
+        }
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin: 0 0 28px;
+            font-size: 14px;
+        }
+        .growth-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+        .growth-card {
+            margin: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+        .growth-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .growth-card figcaption {
+            padding: 14px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
         #gallery-modal {
             display: none;
             position: fixed;
@@ -131,9 +232,14 @@
             top: 30px;
             right: 40px;
             font-size: 40px;
+            line-height: 1;
             color: var(--text-primary);
             cursor: pointer;
             z-index: 2001;
+            background: none;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 8px;
         }
         .close-btn:hover { color: var(--nav-hover); }
         .gallery-content {
@@ -173,40 +279,147 @@
             color: var(--text-secondary);
             text-align: center;
         }
+        #toast {
+            position: fixed;
+            left: 50%;
+            bottom: 32px;
+            transform: translateX(-50%) translateY(16px);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 10px 22px;
+            border-radius: 999px;
+            font-size: 14px;
+            box-shadow: var(--card-shadow);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 3000;
+            max-width: 90vw;
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 36px 16px;
+            font-size: 13px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 30px;
+        }
+        footer a {
+            color: var(--nav-hover);
+            text-decoration: none;
+        }
+        .noscript {
+            text-align: center;
+            padding: 40px 16px;
+            color: var(--text-muted);
+        }
         @media (max-width: 700px) {
-            nav { gap: 20px; }
+            nav { gap: 18px; }
             .theme-toggle { margin-left: 0; margin-top: 8px; }
             #china-map { height: 500px; }
+            .gallery-location-title { font-size: 26px; }
         }
     </style>
 </head>
 <body>
     <header>
         <nav>
-            <a href="#" class="active">摄影地图</a>
-            <a href="#">个人随笔</a>
-            <a href="#">模电心得</a>
-            <a href="#">百亿记录</a>
-            <a href="#">未来计划</a>
-            <button id="theme-switch-btn" class="theme-toggle">🌙 暗夜模式</button>
+            <a href="#map" class="active">摄影地图</a>
+            <a href="#growth">成长相册</a>
+            <span class="nav-soon" title="即将上线">个人随笔</span>
+            <span class="nav-soon" title="即将上线">模电心得</span>
+            <span class="nav-soon" title="即将上线">未来计划</span>
+            <button id="theme-switch-btn" class="theme-toggle" aria-label="切换深浅色主题">🌙 暗夜模式</button>
         </nav>
     </header>
-    <main class="map-wrapper">
-        <h1 class="map-title">光影足迹</h1>
-        <p class="map-subtitle" id="map-tip">🗺️ 点击省份 → 显示市级区划（可点击） | 橙色光点为摄影作品 | 主题自适应</p>
-        <div class="map-container">
-            <div id="china-map"></div>
-        </div>
+    <main>
+        <section id="map" class="map-wrapper">
+            <h1 class="map-title">光影足迹</h1>
+            <p class="map-subtitle" id="map-tip">🗺️ 点击省份 → 显示市级区划（可点击） | 橙色光点为摄影作品 | 主题自适应</p>
+            <div class="map-container">
+                <div id="china-map" role="img" aria-label="中国摄影足迹地图"></div>
+                <div id="map-loading" class="map-loading" hidden>⏳ 地图加载中…</div>
+            </div>
+        </section>
+        <section id="growth" class="section">
+            <h2 class="section-title">🌱 成长相册</h2>
+            <p class="section-subtitle">记录小宝贝的每一个成长瞬间</p>
+            <div class="growth-grid">
+                <figure class="growth-card">
+                    <img src="assets/growth/1-sui.jpg" alt="一岁留念照片" width="1600" height="1067" loading="lazy" decoding="async">
+                    <figcaption>一岁 · 小小脚印</figcaption>
+                </figure>
+                <figure class="growth-card">
+                    <img src="assets/growth/15-months.jpg" alt="15 个月留念照片" width="1600" height="1199" loading="lazy" decoding="async">
+                    <figcaption>15 个月 · 快乐成长</figcaption>
+                </figure>
+            </div>
+        </section>
     </main>
-    <div id="gallery-modal">
-        <span class="close-btn" onclick="closeGallery()">&times;</span>
+    <div id="gallery-modal" role="dialog" aria-modal="true" aria-labelledby="location-name">
+        <button id="close-gallery-btn" class="close-btn" aria-label="关闭相册">&times;</button>
         <div class="gallery-content">
             <h2 class="gallery-location-title" id="location-name">地点名称</h2>
             <div class="photo-grid" id="photo-grid-container"></div>
         </div>
     </div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <footer>
+        <p>© 2026 ixujiayi · 光影足迹 · 用脚步丈量世界</p>
+        <p><a href="https://github.com/ixujiayi/ixujiayi.github.io" target="_blank" rel="noopener">GitHub 仓库</a></p>
+    </footer>
+    <noscript>
+        <p class="noscript">此页面需要启用 JavaScript 才能显示交互地图。</p>
+    </noscript>
 
     <script>
+        // ---------- CDN 列表（优先 jsDelivr，npmmirror 兜底，增强国内访问稳定性） ----------
+        const CDN = {
+            echarts: [
+                'https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js',
+                'https://registry.npmmirror.com/echarts/5.4.3/dist/echarts.min.js'
+            ],
+            chinaMap: [
+                'https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js',
+                'https://registry.npmmirror.com/echarts/4.9.0/map/js/china.js'
+            ],
+            provinceMap(pinyin) {
+                return [
+                    `https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/province/${pinyin}.js`,
+                    `https://registry.npmmirror.com/echarts/4.9.0/map/js/province/${pinyin}.js`
+                ];
+            }
+        };
+
+        // 依次尝试多个 CDN 加载脚本
+        function loadScript(urls) {
+            const queue = Array.isArray(urls) ? urls.slice() : [urls];
+            return new Promise((resolve, reject) => {
+                const tryNext = () => {
+                    const src = queue.shift();
+                    if (!src) {
+                        reject(new Error('所有 CDN 均加载失败'));
+                        return;
+                    }
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.async = true;
+                    script.onload = () => resolve(src);
+                    script.onerror = () => {
+                        script.remove();
+                        tryNext();
+                    };
+                    document.body.appendChild(script);
+                };
+                tryNext();
+            });
+        }
+
         // ---------- 摄影作品数据 (城市名尽量与地图市级名称匹配) ----------
         const photoData = [
             { name: "北京市", value: [116.405285, 39.904989], photos: [{ url: "https://images.unsplash.com/photo-1599571234909-29ed5d13214f?q=80&w=600", desc: "故宫角楼 · 历史光影" }] },
@@ -235,24 +448,55 @@
         let myChart = null;
         let currentProvince = null;          // 当前下钻的省份名
         let currentMergedMapName = null;     // 当前合并地图注册名
+        let loadingProvince = false;         // 省份地图加载中
 
-        // ---------- 主题样式 ----------
+        // ---------- 主题 ----------
+        let currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        let userOverride = false;
+
         function getThemeStyle() {
-            const isLight = document.body.classList.contains('light');
+            const isLight = currentTheme === 'light';
             return {
                 areaColorDefault: isLight ? '#e9f0f5' : '#323c48',
                 borderColor: isLight ? '#cbd5e1' : '#111111',
-                highlightAreaColor: isLight ? '#facc15' : '#ff9800',  // 当前省份高亮色
+                highlightAreaColor: isLight ? '#facc15' : '#ff9800',
                 labelColor: isLight ? '#1f2a3e' : 'rgba(255,255,255,0.7)',
                 labelEmphasis: isLight ? '#e67e22' : '#ffffff',
                 tooltipBg: isLight ? 'rgba(255,255,245,0.96)' : 'rgba(30,30,40,0.96)'
             };
         }
 
-        // 生成地图配置 (支持高亮省份)
+        function applyTheme(theme, persist = true) {
+            currentTheme = theme;
+            document.documentElement.setAttribute('data-theme', theme);
+            const btn = document.getElementById('theme-switch-btn');
+            if (btn) btn.textContent = theme === 'light' ? '☀️ 明亮模式' : '🌙 暗夜模式';
+            if (persist) {
+                try { localStorage.setItem('theme', theme); } catch (e) { /* 忽略 */ }
+            }
+            if (myChart && !myChart.isDisposed()) updateThemeOnly();
+        }
+
+        function toggleTheme() {
+            userOverride = true;
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        }
+
+        function initTheme() {
+            applyTheme(currentTheme, false);
+            document.getElementById('theme-switch-btn').addEventListener('click', toggleTheme);
+            const mq = window.matchMedia('(prefers-color-scheme: dark)');
+            const onSystemThemeChange = (e) => {
+                if (!userOverride) applyTheme(e.matches ? 'dark' : 'light');
+            };
+            if (mq.addEventListener) mq.addEventListener('change', onSystemThemeChange);
+            else if (mq.addListener) mq.addListener(onSystemThemeChange);
+        }
+
+        // ---------- 生成地图配置 (支持高亮省份) ----------
         function getMapOption(mapName, center = null, zoom = 1.2, highlightProvince = null) {
             const style = getThemeStyle();
-            const isLight = document.body.classList.contains('light');
+            const isLight = currentTheme === 'light';
             return {
                 tooltip: {
                     trigger: 'item',
@@ -265,9 +509,8 @@
                             return params.name + ' (' + params.data.photos.length + ' 张照片)<br>✨ 点击查看作品';
                         }
                         if (params.componentSubType === 'geo') {
-                            if (!currentProvince && provincePinyin[params.name]) 
+                            if (!currentProvince && provincePinyin[params.name])
                                 return params.name + '<br>📌 点击查看市级区划';
-                            // 下钻模式下，点击市级区域会提示
                             if (currentProvince) return params.name + '<br>📸 点击查看摄影作品（如有）';
                             return params.name;
                         }
@@ -316,7 +559,7 @@
         function updateThemeOnly() {
             if (!myChart || myChart.isDisposed()) return;
             const style = getThemeStyle();
-            const isLight = document.body.classList.contains('light');
+            const isLight = currentTheme === 'light';
             const currentOpt = myChart.getOption();
             if (!currentOpt.geo) return;
             let regions = currentOpt.geo[0]?.regions || [];
@@ -336,73 +579,75 @@
 
         // ---------- 核心：合并全国地图 + 省份精细地图 (保留邻省，添加市级区划) ----------
         async function drillDownToProvince(provinceName) {
-            if (currentProvince === provinceName) return;
+            if (currentProvince === provinceName || loadingProvince) return;
             const pinyin = provincePinyin[provinceName];
             if (!pinyin) return;
-            
-            // 动态加载省份地图js
-            const scriptId = `map-${pinyin}`;
-            if (!document.getElementById(scriptId)) {
-                await new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.id = scriptId;
-                    script.src = `https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/province/${pinyin}.js`;
-                    script.onload = resolve;
-                    script.onerror = () => reject(new Error(`加载 ${provinceName} 地图失败`));
-                    document.head.appendChild(script);
+
+            loadingProvince = true;
+            setMapLoading(true);
+            setMapTip(`⏳ 正在加载 ${provinceName} 市级地图…`);
+            try {
+                // 动态加载省份地图（多 CDN 容灾）
+                await loadScript(CDN.provinceMap(pinyin));
+
+                const chinaMap = echarts.getMap('china');
+                const provMap = echarts.getMap(provinceName);
+                if (!chinaMap?.geoJSON || !provMap?.geoJSON) {
+                    showToast(`无法获取 ${provinceName} 地图数据，请稍后重试`);
+                    return;
+                }
+                const chinaGeo = JSON.parse(JSON.stringify(chinaMap.geoJSON));
+                const provGeo = provMap.geoJSON;
+
+                // 保留其他省份轮廓，替换当前省份为市级精细边界
+                const otherFeatures = chinaGeo.features.filter(f => f.properties.name !== provinceName);
+                const cityFeatures = provGeo.features;   // 市级/区县级边界
+                const mergedFeatures = [...otherFeatures, ...cityFeatures];
+
+                const mergedMapName = `merged_${provinceName}_${Date.now()}`;
+                echarts.registerMap(mergedMapName, {
+                    type: 'FeatureCollection',
+                    features: mergedFeatures
                 });
-            }
-            const chinaMap = echarts.getMap('china');
-            const provMap = echarts.getMap(provinceName);
-            if (!chinaMap.geoJSON || !provMap.geoJSON) {
-                alert(`无法获取 ${provinceName} 地图数据`);
-                return;
-            }
-            const chinaGeo = JSON.parse(JSON.stringify(chinaMap.geoJSON));
-            const provGeo = provMap.geoJSON;
-            
-            // 保留其他省份轮廓，替换当前省份为市级精细边界
-            const otherFeatures = chinaGeo.features.filter(f => f.properties.name !== provinceName);
-            const cityFeatures = provGeo.features;   // 市级/区县级边界
-            const mergedFeatures = [...otherFeatures, ...cityFeatures];
-            
-            const mergedMapName = `merged_${provinceName}_${Date.now()}`;
-            echarts.registerMap(mergedMapName, {
-                type: 'FeatureCollection',
-                features: mergedFeatures
-            });
-            
-            currentProvince = provinceName;
-            currentMergedMapName = mergedMapName;
-            
-            // 计算地图中心（从省份边界获取）
-            let center = null;
-            if (provGeo.features.length > 0 && provGeo.features[0].properties.cp) {
-                center = provGeo.features[0].properties.cp;
-            } else {
-                // 粗略计算边界中心
-                let minLng = 180, maxLng = -180, minLat = 90, maxLat = -90;
-                const extractCoords = (coords) => {
-                    coords.forEach(coord => {
-                        if (typeof coord[0] === 'number') {
-                            minLng = Math.min(minLng, coord[0]);
-                            maxLng = Math.max(maxLng, coord[0]);
-                            minLat = Math.min(minLat, coord[1]);
-                            maxLat = Math.max(maxLat, coord[1]);
-                        } else {
-                            extractCoords(coord);
-                        }
+
+                currentProvince = provinceName;
+                currentMergedMapName = mergedMapName;
+
+                // 计算地图中心（优先使用省份数据自带中心点）
+                let center = null;
+                if (provGeo.features.length > 0 && provGeo.features[0].properties.cp) {
+                    center = provGeo.features[0].properties.cp;
+                } else {
+                    let minLng = 180, maxLng = -180, minLat = 90, maxLat = -90;
+                    const extractCoords = (coords) => {
+                        coords.forEach(coord => {
+                            if (typeof coord[0] === 'number') {
+                                minLng = Math.min(minLng, coord[0]);
+                                maxLng = Math.max(maxLng, coord[0]);
+                                minLat = Math.min(minLat, coord[1]);
+                                maxLat = Math.max(maxLat, coord[1]);
+                            } else {
+                                extractCoords(coord);
+                            }
+                        });
+                    };
+                    provGeo.features.forEach(f => {
+                        if (f.geometry.type === 'Polygon') extractCoords(f.geometry.coordinates);
+                        else if (f.geometry.type === 'MultiPolygon') f.geometry.coordinates.forEach(poly => extractCoords(poly));
                     });
-                };
-                provGeo.features.forEach(f => {
-                    if (f.geometry.type === 'Polygon') extractCoords(f.geometry.coordinates);
-                    else if (f.geometry.type === 'MultiPolygon') f.geometry.coordinates.forEach(poly => extractCoords(poly));
-                });
-                center = [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
+                    center = [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
+                }
+                const option = getMapOption(mergedMapName, center, 1.8, provinceName);
+                myChart.setOption(option, true);
+                setMapTip(`📍 当前：${provinceName} 市级区划（周边省界保留） | 点击任意市可查看摄影作品 | 点击空白区域返回全国`);
+            } catch (err) {
+                console.error(err);
+                showToast(`无法加载 ${provinceName} 地图，请检查网络后重试`);
+                setMapTip('🗺️ 点击省份 → 显示市级区划（可点击） | 橙色光点为摄影作品 | 主题自适应');
+            } finally {
+                setMapLoading(false);
+                loadingProvince = false;
             }
-            const option = getMapOption(mergedMapName, center, 1.8, provinceName);
-            myChart.setOption(option, true);
-            document.getElementById('map-tip').innerHTML = `📍 当前：${provinceName} 市级区划（周边省界保留） | 点击任意市可查看摄影作品 | 点击空白区域返回全国`;
         }
 
         // 返回全国地图
@@ -412,19 +657,17 @@
             currentMergedMapName = null;
             const option = getMapOption('china', null, 1.2, null);
             myChart.setOption(option, true);
-            document.getElementById('map-tip').innerHTML = '🗺️ 点击省份 → 显示市级区划（可点击） | 橙色光点为摄影作品 | 主题自适应';
+            setMapTip('🗺️ 点击省份 → 显示市级区划（可点击） | 橙色光点为摄影作品 | 主题自适应');
         }
 
         // ---------- 处理市级区域点击 (下钻模式下) ----------
         function handleCityClick(cityName) {
             if (!currentProvince) return;
-            // 查找该城市是否有摄影作品
             const photoItem = photoMap.get(cityName);
             if (photoItem) {
                 openGallery(photoItem);
             } else {
-                // 友好提示：暂无摄影作品
-                alert(`📸 暂无“${cityName}”的摄影作品，欢迎下次补充。`);
+                showToast(`📸 暂无“${cityName}”的摄影作品，欢迎下次补充。`);
             }
         }
 
@@ -445,28 +688,18 @@
                         if (provincePinyin[clickedName]) {
                             drillDownToProvince(clickedName).catch(err => {
                                 console.error(err);
-                                alert(`无法加载 ${clickedName} 地图，请检查网络`);
+                                showToast(`无法加载 ${clickedName} 地图，请检查网络`);
                             });
                         }
                     } else {
-                        // 下钻模式：点击的是市级区域（或者邻省）
-                        // 判断该区域是否属于当前省份的市级区划（通过检查名称是否在 provinceFeatures 中）
-                        // 简单方法：如果点击的不是当前省份名称且不是邻省名称（邻省仍会触发，但我们只响应市级）
-                        // 更准确：通过地图数据判断该区域是否属于市级（名称长度或特征），这里直接调用城市处理函数
-                        // 避免误点邻省触发提示，但邻省也是可点击的，我们限制只有市级名称才响应，否则忽略
-                        // 获取当前合并地图中所有市级名称（即 provinceFeatures 中的 name）
+                        // 下钻模式：判断点击的是否为当前省份的市级区划
                         const provMap = echarts.getMap(currentProvince);
                         if (provMap && provMap.geoJSON) {
                             const cityNames = provMap.geoJSON.features.map(f => f.properties.name);
                             if (cityNames.includes(clickedName)) {
                                 handleCityClick(clickedName);
-                            } else {
-                                // 点击了周边省份或无关区域，不做响应，但保持空白返回功能
-                                // 可选轻微提示，但不干扰
-                                // console.log("点击了非市级区域：" + clickedName);
                             }
                         } else {
-                            // 降级处理：只要不是当前省份名称本身，就当作城市点击
                             if (clickedName !== currentProvince) handleCityClick(clickedName);
                         }
                     }
@@ -481,52 +714,64 @@
             });
         }
 
-        // ---------- 主题系统 ----------
-        let userOverride = false;
-        function getSystemTheme() { return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
-        let currentTheme = 'dark';
-        function applyTheme(theme) {
-            if (theme === 'light') {
-                document.body.classList.add('light');
-                currentTheme = 'light';
-                document.getElementById('theme-switch-btn').innerHTML = '☀️ 明亮模式';
-            } else {
-                document.body.classList.remove('light');
-                currentTheme = 'dark';
-                document.getElementById('theme-switch-btn').innerHTML = '🌙 暗夜模式';
-            }
-            if (myChart && !myChart.isDisposed()) updateThemeOnly();
-        }
-        function toggleTheme() { userOverride = true; applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
-        function initTheme() {
-            applyTheme(getSystemTheme());
-            userOverride = false;
-            const mq = window.matchMedia('(prefers-color-scheme: dark)');
-            mq.addEventListener('change', (e) => { if (!userOverride) applyTheme(e.matches ? 'dark' : 'light'); });
-            document.getElementById('theme-switch-btn').addEventListener('click', toggleTheme);
-        }
-
         // ---------- 画廊弹窗 ----------
         const modal = document.getElementById('gallery-modal');
+        const closeBtn = document.getElementById('close-gallery-btn');
         const locationTitle = document.getElementById('location-name');
         const photoGrid = document.getElementById('photo-grid-container');
+        let lastFocused = null;
+
         function openGallery(data) {
-            locationTitle.innerText = "📸 拍摄地：" + data.name;
-            photoGrid.innerHTML = "";
+            lastFocused = document.activeElement;
+            locationTitle.textContent = '📸 拍摄地：' + data.name;
+            photoGrid.innerHTML = '';
+            const fragment = document.createDocumentFragment();
             data.photos.forEach(photo => {
                 const card = document.createElement('div');
                 card.className = 'photo-card';
-                card.innerHTML = `<img src="${photo.url}" alt="${photo.desc}" loading="lazy"><div class="photo-desc">${photo.desc}</div>`;
-                photoGrid.appendChild(card);
+                const img = document.createElement('img');
+                img.src = photo.url;
+                img.alt = photo.desc;
+                img.loading = 'lazy';
+                img.decoding = 'async';
+                const desc = document.createElement('div');
+                desc.className = 'photo-desc';
+                desc.textContent = photo.desc;
+                card.append(img, desc);
+                fragment.appendChild(card);
             });
+            photoGrid.appendChild(fragment);
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
+            closeBtn.focus();
         }
-        window.closeGallery = function() {
+
+        window.closeGallery = function () {
             modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
+            document.body.style.overflow = '';
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
         };
         modal.addEventListener('click', (e) => { if (e.target === modal) closeGallery(); });
+        closeBtn.addEventListener('click', closeGallery);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.style.display === 'block') closeGallery();
+        });
+
+        // ---------- 轻提示 / 加载状态 ----------
+        const toast = document.getElementById('toast');
+        let toastTimer = null;
+        function showToast(message, duration = 2600) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+        }
+        function setMapLoading(on) {
+            document.getElementById('map-loading').hidden = !on;
+        }
+        function setMapTip(html) {
+            document.getElementById('map-tip').innerHTML = html;
+        }
 
         // ---------- 初始化地图 ----------
         function initMap() {
@@ -535,11 +780,30 @@
             myChart = echarts.init(dom);
             myChart.setOption(getMapOption('china', null, 1.2, null));
             bindEvents();
-            window.addEventListener('resize', () => myChart.resize());
+            let resizeTimer = null;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => myChart.resize(), 150);
+            });
         }
-        initMap();
-        initTheme();
-        setTimeout(() => { if (myChart) updateThemeOnly(); }, 100);
+
+        // ---------- 启动：先加载依赖，再初始化主题与地图 ----------
+        async function bootstrap() {
+            setMapLoading(true);
+            try {
+                await loadScript(CDN.echarts);
+                await loadScript(CDN.chinaMap);
+            } catch (err) {
+                console.error(err);
+                showToast('地图组件加载失败，请检查网络后刷新页面');
+                setMapLoading(false);
+                return;
+            }
+            initTheme();
+            initMap();
+            setMapLoading(false);
+        }
+        bootstrap();
     </script>
 </body>
 </html>
