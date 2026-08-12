@@ -1,0 +1,151 @@
+﻿model = "deepseek-v4-flash"
+model_provider = "opencode-go-direct"
+preferred_auth_method = "apikey"
+forced_login_method = "api"
+model_reasoning_effort = "max"
+model_catalog_json = "C:/Users/47176/.codex/models.json"
+
+notify = [ "C:\\Users\\47176\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\f1bf3cd3a5929acd\\bin\\node_modules\\@oai\\sky\\bin\\windows\\codex-computer-use.exe", "turn-ended" ]
+model_verbosity = "high"
+web_search = "live"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[marketplaces.openai-bundled]
+last_updated = "2026-08-10T16:19:47Z"
+source_type = "local"
+source = '\\?\C:\Users\47176\.codex\.tmp\bundled-marketplaces\openai-bundled'
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."visualize@openai-bundled"]
+enabled = true
+
+[plugins."google-calendar@openai-curated"]
+enabled = true
+
+[plugins."slack@openai-curated"]
+enabled = true
+
+[plugins."latex@openai-bundled"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[features]
+js_repl = True
+
+[mcp_servers.node_repl]
+args = []
+command = 'C:\Users\47176\AppData\Local\OpenAI\Codex\runtimes\cua_node\f1bf3cd3a5929acd\bin\node_repl.exe'
+startup_timeout_sec = 120
+
+[mcp_servers.node_repl.env]
+NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
+NODE_REPL_NODE_MODULE_DIRS = 'C:\Users\47176\AppData\Local\OpenAI\Codex\runtimes\cua_node\f1bf3cd3a5929acd\bin\node_modules'
+NODE_REPL_NODE_PATH = 'C:\Users\47176\AppData\Local\OpenAI\Codex\runtimes\cua_node\f1bf3cd3a5929acd\bin\node.exe'
+NODE_REPL_TRUSTED_CODE_PATHS = 'C:\Users\47176\.codex;C:\Users\47176\AppData\Local\OpenAI\Codex\runtimes\cua_node\f1bf3cd3a5929acd\bin\node_modules'
+CODEX_HOME = 'C:\Users\47176\.codex'
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "e7f98a8ce324234ed7f3be8fa39ba54b26e2e8fc79feed2470dcd0871af4a5b3"
+BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
+NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = "Control the in-app browser in conjunction with the Browser Plugin."
+NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = "Control the Chrome browser in conjunction with the Chrome Plugin. Prefer this method of controlling Chrome over alternatives (such as Computer Use) unless the user explicitly mentions an alternative."
+BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
+BROWSER_USE_CODEX_APP_VERSION = "26.803.41515"
+SKY_CUA_NATIVE_PIPE = "1"
+SKY_CUA_NATIVE_PIPE_DIRECTORY = '\\.\pipe\codex-computer-use-c756bf51-4d4d-4276-a179-958740a53b10'
+CODEX_CLI_PATH = 'C:\Users\47176\AppData\Local\OpenAI\Codex\bin\cfac6bda2d141e07\codex.exe'
+
+[shell_environment_policy.set]
+BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "e7f98a8ce324234ed7f3be8fa39ba54b26e2e8fc79feed2470dcd0871af4a5b3"
+NODE_REPL_TRUSTED_CODE_PATHS = 'C:\Users\47176\.codex;C:\Users\47176\AppData\Local\OpenAI\Codex\runtimes\cua_node\f1bf3cd3a5929acd\bin\node_modules'
+
+[model_providers.deepseek]
+name = "deepseek"
+base_url = "https://api.deepseek.com/"
+wire_api = "responses"
+experimental_bearer_token = "sk-f8ef1ee75d9a4680a0230619dff51688"
+
+[desktop]
+conversationDetailMode = "STEPS_COMMANDS"
+ambient-suggestions-enabled = true
+followUpQueueMode = "queue"
+enabled-reasoning-efforts = ["low", "medium", "high", "xhigh", "ultra", "max"]
+show-context-window-usage = true
+
+[windows]
+sandbox = "elevated"
+
+[projects.'c:\users\47176\documents\codex\2026-08-03\sk-f8ef1ee75d9a4680a0230619dff51688']
+trust_level = "trusted"
+
+[projects.'c:\users\47176\documents\codex\2026-08-03\sk-f8ef1ee75d9a4680a0230619dff51688-2']
+trust_level = "trusted"
+
+[projects.'c:\users\47176\desktop\qiang']
+trust_level = "trusted"
+
+[projects.'c:\users\47176\documents\codex\2026-08-05\ke-y']
+trust_level = "trusted"
+
+[projects.'d:\codex\zhinengjiaju']
+trust_level = "trusted"
+
+[projects.'c:\users\47176\documents\codex\2026-08-06\http-192-168-3-1-html']
+trust_level = "trusted"
+
+[projects.'d:\codex\myweb']
+trust_level = "trusted"
+
+[projects.'c:\users\47176\documents\codex\2026-08-06\ba-m']
+trust_level = "trusted"
+
+[projects.'d:\codex\sdr']
+trust_level = "trusted"
+
+[projects.'c:\users\47176\documents\codex\2026-08-10\https-github-com-longmao-code-codex']
+trust_level = "trusted"
+
+[projects.'c:\users\47176\documents\codex\2026-08-10\https-github-com-kellen223-codex-opencode']
+trust_level = "trusted"
+
+[projects.'c:\users\47176\documents\codex\2026-08-10\https-github-com-kellen223-codex-opencode-2']
+trust_level = "trusted"
+
+[projects.'c:\users\47176\documents\codex\2026-08-11\neng']
+trust_level = "trusted"
+
+[projects.'d:\virtuoso bridge']
+trust_level = "trusted"
+
+[projects.'d:\codex\鍥惧簱鑷姩鍖栦笂浼?]
+trust_level = "trusted"
+
+[projects.'d:\codex\灏忕背']
+trust_level = "trusted"
+
+[profiles.opencode-go]
+model = "deepseek-v4-flash"
+model_provider = "opencode-go-direct"
+
+[profiles.opencode-go-pro]
+model = "deepseek-v4-flash"
+model_provider = "opencode-go-direct"
+
+[sandbox_workspace_write]
+network_access = true
+
+[model_providers.opencode-go-bridge]
+name = "OpenCode Go Bridge"
+base_url = "http://127.0.0.1:41425/v1"
+api_key = "local-bridge"
+wire_api = "responses"
+
+[model_providers.opencode-go-direct]
+name = "OpenCode Go"
+base_url = "https://opencode.ai/zen/go/v1"
+env_key = "OPENCODE_GO_API_KEY"
+wire_api = "responses"
